@@ -289,7 +289,7 @@ async function addQuickLinks() {
     const urls            = textarea.value.trim().split('\n').filter(u => u.trim());
     const customName      = customNameInput.value.trim();
 
-    if (urls.length === 0) { alert('Please paste at least one S3 URL'); return; }
+    if (urls.length === 0) { alert('Please paste at least one URL'); return; }
     if (!communitySelect.value) { alert('Please select a community'); return; }
 
     const [stateName, communityId] = communitySelect.value.split('|');
