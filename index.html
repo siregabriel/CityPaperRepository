@@ -194,16 +194,15 @@
         }
 
         .download-btn {
-            background: linear-gradient(135deg, #225e64 0%, #2a7580 100%);
+            background: white;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: none;
             box-shadow: 0 2px 8px rgba(34, 94, 100, 0.2);
+            color: gray!important;;
         }
 
         .download-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(34, 94, 100, 0.3);
-            background: linear-gradient(135deg, #1d4f54 0%, #225e64 100%);
+            background: white;
         }
 
         .download-btn:active {
@@ -368,9 +367,6 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        div.mb-10.animate-fade-in.glassmorphism.rounded-2xl.p-6 {
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -399,39 +395,67 @@
         <!-- Main Content -->
         <main class="max-w-7xl mx-auto px-6 py-12 relative z-10">
 
-            <!-- Quick Links Upload Section -->
-            <div class="mb-10 animate-fade-in glassmorphism rounded-2xl p-6">
-                <h3 class="text-lg font-semibold text-gray-700 mb-4">📎 Quick Links - Paste S3 URLs</h3>
-                <div class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Community / State</label>
-                            <select id="communitySelect" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                <option value="">-- Select a community --</option>
-                            </select>
+            <!-- Quick Links Upload Section (collapsible, folder-card style) -->
+            <div class="mb-10 animate-fade-in" style="position:relative; padding-top:8px;">
+                <!-- Folder tab -->
+                <div style="position:absolute; top:0; left:20px; width:120px; height:8px; background:linear-gradient(135deg,rgba(34,94,100,0.4) 0%,rgba(34,94,100,0.6) 100%); border-radius:4px 4px 0 0; border:1px solid rgba(255,255,255,0.3); border-bottom:none;"></div>
+                <!-- Card -->
+                <div style="background:#f3f5fb; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-radius:16px; overflow:hidden;">
+                    <!-- Toggle header -->
+                    <button
+                        onclick="toggleQuickLinks()"
+                        style="width:100%; display:flex; align-items:center; justify-content:space-between; padding:18px 24px; background:transparent; border:none; cursor:pointer; transition:background 0.2s ease;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                        onmouseout="this.style.background='transparent'"
+                    >
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <svg style="width:20px;height:20px;color:#225e64;opacity:0.8;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            <span style="font-size:15px; font-weight:500!important; color:#525font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-weight:600; color:#525a68;">Add Link (for Atlas staff only)</span>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Custom Name (optional)</label>
-                            <input type="text" id="customName" placeholder="E.g.: Special Documentation"
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <svg id="quickLinksChevron" style="width:18px;height:18px;color:#9ca3af;transition:transform 0.3s ease;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <!-- Collapsible body -->
+                    <div id="quickLinksBody" style="max-height:0; overflow:hidden; transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1);">
+                        <div style="padding:0 24px 24px; border-top:1px solid rgba(255,255,255,0.35);">
+                            <div style="height:16px;"></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" style="margin-bottom:16px;">
+                                <div>
+                                    <label style="display:block; font-size:13px; font-weight:500; color:#374151; margin-bottom:6px;">Community / State</label>
+                                    <select id="communitySelect" style="width:100%; height:42px; padding:10px 12px; border:1px solid rgba(209,213,219,0.8); border-radius:10px; background:rgba(255,255,255,0.7); font-size:14px; color:#374151; outline:none;">
+                                        <option value="">-- Select a community --</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="display:block; font-size:13px; font-weight:500; color:#374151; margin-bottom:6px;">File Name* (required)</label>
+                                    <input type="text" id="customName" placeholder="E.g.: Special Documentation"
+                                        style="width:100%; padding:10px 12px; border:1px solid rgba(209,213,219,0.8); border-radius:10px; background:rgba(255,255,255,0.7); font-size:14px; color:#374151; outline:none; box-sizing:border-box;">
+                                </div>
+                            </div>
+                            <div style="margin-bottom:16px;">
+                                <label style="display:block; font-size:13px; font-weight:500; color:#374151; margin-bottom:6px;">Hosted Files URLs</label>
+                                <textarea id="linksPaste"
+                                    placeholder="Paste URLs here (one per line)&#10;E.g.: https://atlasprint.s3.us-east-1.amazonaws.com/CityPaper/Wildcat+Senior+Living+Letterhead.ai"
+                                    style="width:100%; padding:10px 12px; border:1px solid rgba(209,213,219,0.8); border-radius:10px; background:rgba(255,255,255,0.7); font-size:13px; font-family:monospace; color:#374151; outline:none; resize:none; box-sizing:border-box;"
+                                    rows="3"></textarea>
+                            </div>
+                            <div style="display:flex; gap:10px;">
+                                <button onclick="addQuickLinks()"
+                                    class="download-btn"
+                                    style="padding:10px 20px; border-radius:10px; color:white; font-size:14px; font-weight:500; cursor:pointer;">
+                                    ➕ Add Link
+                                </button>
+                                <button onclick="clearLinks()"
+                                    style="padding:10px 20px; background:rgba(243,244,246,0.8); border:1px solid rgba(209,213,219,0.6); border-radius:10px; color:#6b7280; font-size:14px; font-weight:500; cursor:pointer; transition:background 0.2s ease;"
+                                    onmouseover="this.style.background='rgba(229,231,235,0.9)'"
+                                    onmouseout="this.style.background='rgba(243,244,246,0.8)'">
+                                    🗑️ Clear
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">S3 URLs</label>
-                        <textarea id="linksPaste"
-                            placeholder="Paste S3 URLs here (one per line)&#10;E.g.: https://atlasprint.s3.us-east-1.amazonaws.com/CityPaper/Wildcat+Senior+Living+Letterhead.ai"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono text-sm resize-none"
-                            rows="3"></textarea>
-                    </div>
-                    <div class="flex gap-3">
-                        <button onclick="addQuickLinks()"
-                            class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-medium">
-                            ➕ Add Links
-                        </button>
-                        <button onclick="clearLinks()"
-                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-all font-medium">
-                            🗑️ Clear
-                        </button>
                     </div>
                 </div>
             </div>
@@ -494,7 +518,7 @@
         <!-- Footer -->
         <footer class="mt-16 pt-10 border-t border-white/30 relative z-10">
             <div class="max-w-7xl mx-auto px-6 pb-8 text-center">
-                <p class="text-gray-400 font-light text-sm tracking-wide">&copy; 2026 Atlas Printing & City Paper Repository. Designed by Atlas Senior Living</p>
+                <p class="text-gray-400 font-light text-sm tracking-wide">&copy; 2024 Senior Living Communities. All rights reserved.</p>
             </div>
         </footer>
     </div>

@@ -345,6 +345,20 @@ async function addQuickLinks() {
     alert(`✅ Added ${addedCount} file(s) to ${community.name}`);
 }
 
+function toggleQuickLinks() {
+    const body    = document.getElementById('quickLinksBody');
+    const chevron = document.getElementById('quickLinksChevron');
+    const isOpen  = body.style.maxHeight !== '0px' && body.style.maxHeight !== '';
+    if (isOpen) {
+        body.style.maxHeight = '0px';
+        chevron.style.transform = 'rotate(0deg)';
+    } else {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        chevron.style.transform = 'rotate(180deg)';
+        setTimeout(() => { body.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+    }
+}
+
 function clearLinks() {
     document.getElementById('linksPaste').value   = '';
     document.getElementById('customName').value   = '';
