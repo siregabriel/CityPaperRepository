@@ -148,7 +148,36 @@ Edit the Tailwind CSS classes in `index.html`:
 - Currently shows alert with file name
 - Can be integrated with a real backend for actual downloads
 
-## 📊 Dashboard Statistics
+## � Quick Links S3 Integration (v2)
+
+### New Features
+- **Community Selection** - Dropdown selector to choose target community
+- **Custom Name** - Optional field to rename files (auto-parses from URL if blank)
+- **Direct S3 Links** - Add multiple S3 direct links at once (one per line)
+- **Auto File Type Detection** - Automatically extracts file type from URL
+- **Direct Downloads** - S3 links open directly without intermediary processing
+
+### How to Use Quick Links
+
+1. **Select a Community** - Choose the target community from the dropdown menu
+2. **Add Custom Name (Optional)** - Enter a custom file name if desired
+3. **Paste S3 URLs** - Enter one URL per line in the textarea
+4. **Add Links** - Click "Agregar Links" button to add files to the selected community
+5. **Clear** - Use "Limpiar" button to reset all fields
+
+### Supported Operations
+- Add multiple files to a community at once
+- Auto-parsing of S3 file types (pdf, word, excel, etc.)
+- Direct file downloads from S3
+- Real-time community and file organization
+
+### UI Components
+- Community selector with format: "Name (Location, State)"
+- Custom name input field (optional)
+- URLs textarea for bulk URL input
+- Action buttons: "Agregar Links" and "Limpiar"
+
+## �📊 Dashboard Statistics
 
 The page automatically updates statistics for:
 - **Total Communities**: All communities in the system
