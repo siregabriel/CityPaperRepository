@@ -187,10 +187,22 @@ The page automatically updates statistics for:
 
 ## 🌐 Technologies Used
 
+### Frontend
 - **HTML5** - Semantic structure
 - **JavaScript (Vanilla)** - No external dependencies
 - **Tailwind CSS** - Utility-first CSS framework
 - **CDN** - Tailwind CSS served from CDN (no build process needed)
+
+### AWS Services
+- **Amazon S3** - File storage and direct link management for documents
+- **AWS Lambda** - Serverless backend operations and file processing
+- **Firebase Integration** - Real-time data management and authentication (configured via firebase-config.js)
+- **AWS CloudFront** - CDN for fast document delivery
+- **AWS IAM** - Access control and security policies
+
+### Deployment
+- **Vercel** - Hosting and deployment platform (vercel.json configuration)
+- **Environment Configuration** - env-config.js for environment variables and API endpoints
 
 ## 💡 Tips & Tricks
 
