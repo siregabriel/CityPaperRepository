@@ -363,9 +363,33 @@ async function addQuickLinks() {
     alert(`✅ Added ${addedCount} file(s) to ${community.name}`);
 }
 
+// ─── Admin gate ───────────────────────────────────────────────────────────────
+// NOTE: client-side only. The password is visible in this file's source, so this
+// keeps casual visitors out — it is NOT real security. For that, the Lambda
+// would need to require a secret/token. Change ADMIN_PASSWORD to your own value.
+const ADMIN_PASSWORD = 'webdept2022';
+let _adminUnlocked = false;
+
+function requireAdmin() {
+    if (_adminUnlocked) return true;
+    const entry = prompt('Enter password to manage files:');
+    if (entry === null) return false;          // user cancelled
+    if (entry === ADMIN_PASSWORD) {
+        _adminUnlocked = true;                  // unlocked for this session
+        return true;
+    }
+    alert('Incorrect password.');
+    return false;
+}
+
 function togglePanel(which) {
     const panels = { quickLinks: 'quickLinksPanel', upload: 'uploadPanel' };
     const btns   = { quickLinks: 'btnQuickLinks',   upload: 'btnUpload'   };
+
+    // Gate opening either admin panel behind a password.
+    const target  = document.getElementById(panels[which]);
+    const isClosing = target && target.style.maxHeight && target.style.maxHeight !== '0px';
+    if (!isClosing && !requireAdmin()) return;
 
     Object.entries(panels).forEach(([key, panelId]) => {
         const panel = document.getElementById(panelId);
