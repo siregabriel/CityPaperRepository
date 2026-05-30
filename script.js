@@ -23,11 +23,7 @@ const communitiesData = {
         { id: 18, name: "The Goldton at Venice",         location: "Venice",        files: [] },
         { id: 19, name: "The Goldton at St. Petersburg", location: "St. Petersburg",files: [] },
         { id: 20, name: "Lake Howard Heights",           location: "Winter Haven",  files: [] },
-        { id: 21, name: "The Canopy At Beacon Woods",   location: "Winter Park",   files: [
-            { id: 163, name: "Fitness Programs",    type: "word",  size: "1.5 MB", date: "2024-03-05" },
-            { id: 164, name: "Class Schedule",      type: "pdf",   size: "1.2 MB", date: "2024-03-10" },
-            { id: 165, name: "Member Registration", type: "excel", size: "1.6 MB", date: "2024-03-15" }
-        ]},
+        { id: 21, name: "The Canopy At Beacon Woods",   location: "Winter Park",   files: []},
         { id: 22, name: "The Goldton At Lake Nona",     location: "Lake Nona",     files: [] }
     ],
     Mississippi: [
@@ -95,7 +91,9 @@ async function loadFromStorage() {
             savedComs.forEach(savedCom => {
                 const live = communitiesData[state].find(c => c.id === savedCom.id);
                 if (live && savedCom.files && savedCom.files.length > 0) {
-                    live.files = savedCom.files;
+                    // Only keep real files (those with a URL). Legacy sample/demo
+                    // entries have no url and should not be shown.
+                    live.files = savedCom.files.filter(f => f.url);
                 }
             });
         });
@@ -200,14 +198,27 @@ function createFolderCard(community) {
     return card;
 }
 
+// Keep track of which community is open in the modal
+let _modalCommunity = null;
+
 function openModal(community) {
+    _modalCommunity = community;
     const modal         = document.getElementById('fileModal');
     const modalTitle    = document.getElementById('modalTitle');
     const modalLocation = document.getElementById('modalLocation');
-    const modalFilesList= document.getElementById('modalFilesList');
 
     modalTitle.textContent = community.name;
     modalLocation.querySelector('span').textContent = community.location;
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    renderModalFiles();
+}
+
+function renderModalFiles() {
+    const community      = _modalCommunity;
+    const modalFilesList = document.getElementById('modalFilesList');
     modalFilesList.innerHTML = '';
 
     if (community.files.length === 0) {
@@ -215,41 +226,48 @@ function openModal(community) {
             <div class="text-center py-12">
                 <p class="text-gray-400 font-light">No files added yet for this community.</p>
             </div>`;
-    } else {
-        community.files.forEach(file => {
-            const fileRow = document.createElement('div');
-            fileRow.className = 'file-item flex justify-between items-center p-5 rounded-xl';
+        return;
+    }
 
-            let typeIcon = '📄';
-            if (file.type === 'word')  typeIcon = '📝';
-            if (file.type === 'excel') typeIcon = '📊';
+    community.files.forEach(file => {
+        const fileRow = document.createElement('div');
+        fileRow.className = 'file-item flex justify-between items-center p-5 rounded-xl';
+        fileRow.id = 'file-row-' + file.id;
 
-            fileRow.innerHTML = `
-                <div class="flex-1">
-                    <p class="font-normal text-gray-700 flex items-center gap-3">
-                        <span class="text-2xl">${typeIcon}</span>
-                        <span>${file.name}</span>
-                    </p>
-                    <p class="text-xs text-gray-400 mt-2 ml-11 font-light tracking-wide">${file.type.toUpperCase()} • ${file.size} • ${formatDate(file.date)}</p>
-                </div>
-                <button
+        let typeIcon = '📄';
+        if (file.type === 'word')   typeIcon = '📝';
+        if (file.type === 'excel')  typeIcon = '📊';
+        if (file.type === 'design') typeIcon = '📄';
+
+        fileRow.innerHTML = `
+            <div class="flex-1">
+                <p class="font-normal text-gray-700 flex items-center gap-3">
+                    <span class="text-2xl">${typeIcon}</span>
+                    <span>${file.name}</span>
+                </p>
+                <p class="text-xs text-gray-400 mt-2 ml-11 font-light tracking-wide">${file.type.toUpperCase()} • ${file.size} • ${formatDate(file.date)}</p>
+            </div>
+            <button
                     onclick="event.stopPropagation(); downloadFile(${file.id})"
-                    class="download-btn ml-6 text-gray font-light py-3 px-6 rounded-xl transition-all whitespace-nowrap text-sm tracking-wide"
+                    class="download-btn ml-6 text-gray-700 font-light py-3 px-6 rounded-xl transition-all whitespace-nowrap text-sm tracking-wide"
                 >
                     Download
                 </button>
-            `;
-            modalFilesList.appendChild(fileRow);
-        });
-    }
-
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+        `;
+        modalFilesList.appendChild(fileRow);
+    });
 }
+
+
 
 function formatDate(dateString) {
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+    // Parse "YYYY-MM-DD" as LOCAL time, not UTC. Plain new Date("2026-05-30")
+    // treats it as UTC midnight, which renders as the previous day in
+    // timezones behind UTC (e.g. the Americas). Build it from parts instead.
+    const [y, m, d] = dateString.split('-').map(Number);
+    const date = (y && m && d) ? new Date(y, m - 1, d) : new Date(dateString);
+    return date.toLocaleDateString('en-US', options);
 }
 
 function downloadFile(fileId) {
@@ -289,7 +307,7 @@ async function addQuickLinks() {
     const urls            = textarea.value.trim().split('\n').filter(u => u.trim());
     const customName      = customNameInput.value.trim();
 
-    if (urls.length === 0) { alert('Please paste at least one URL'); return; }
+    if (urls.length === 0) { alert('Please paste at least one S3 URL'); return; }
     if (!communitySelect.value) { alert('Please select a community'); return; }
 
     const [stateName, communityId] = communitySelect.value.split('|');
@@ -345,18 +363,35 @@ async function addQuickLinks() {
     alert(`✅ Added ${addedCount} file(s) to ${community.name}`);
 }
 
-function toggleQuickLinks() {
-    const body    = document.getElementById('quickLinksBody');
-    const chevron = document.getElementById('quickLinksChevron');
-    const isOpen  = body.style.maxHeight !== '0px' && body.style.maxHeight !== '';
-    if (isOpen) {
-        body.style.maxHeight = '0px';
-        chevron.style.transform = 'rotate(0deg)';
-    } else {
-        body.style.maxHeight = body.scrollHeight + 'px';
-        chevron.style.transform = 'rotate(180deg)';
-        setTimeout(() => { body.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
-    }
+function togglePanel(which) {
+    const panels = { quickLinks: 'quickLinksPanel', upload: 'uploadPanel' };
+    const btns   = { quickLinks: 'btnQuickLinks',   upload: 'btnUpload'   };
+
+    Object.entries(panels).forEach(([key, panelId]) => {
+        const panel = document.getElementById(panelId);
+        const btn   = document.getElementById(btns[key]);
+        if (key === which) {
+            const isOpen = panel.style.maxHeight && panel.style.maxHeight !== '0px';
+            if (isOpen) {
+                panel.style.maxHeight = '0px';
+                btn.style.background  = 'transparent';
+                btn.style.border      = '1px solid transparent';
+                btn.style.color       = '#525a68';
+            } else {
+                panel.style.maxHeight = panel.scrollHeight + 600 + 'px';
+                btn.style.background  = 'rgba(34,94,100,0.08)';
+                btn.style.border      = '1px solid rgba(34,94,100,0.15)';
+                btn.style.color       = '#225e64';
+                setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+            }
+        } else {
+            // close the other panel
+            panel.style.maxHeight = '0px';
+            btn.style.background  = 'transparent';
+            btn.style.border      = '1px solid transparent';
+            btn.style.color       = '#525a68';
+        }
+    });
 }
 
 function clearLinks() {
@@ -377,12 +412,288 @@ function populateCommunitySelect() {
     });
 }
 
+function populateUploadCommunitySelect() {
+    const select = document.getElementById('uploadCommunitySelect');
+    Object.entries(communitiesData).forEach(([state, communities]) => {
+        communities.forEach(community => {
+            const option   = document.createElement('option');
+            option.value   = `${state}|${community.id}`;
+            option.textContent = `${community.name} (${community.location}, ${state})`;
+            select.appendChild(option);
+        });
+    });
+    select.addEventListener('change', updateUploadBtn);
+}
+
+
+// ─── Upload to S3 via Lambda ──────────────────────────────────────────────────
+
+const LAMBDA_URL = 'https://g62we6c3vmire4fuehoe6fn62i0upweg.lambda-url.us-east-1.on.aws/';
+let uploadQueue = []; // { file, name }
+
+
+
+function handleDrop(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropZone');
+    zone.style.background = 'rgba(255,255,255,0.4)';
+    zone.style.borderColor = 'rgba(209,213,219,0.6)';
+    handleFileSelect(event.dataTransfer.files);
+}
+
+function handleFileSelect(files) {
+    for (const file of files) {
+        if (!uploadQueue.find(f => f.file.name === file.name)) {
+            uploadQueue.push({ file, name: file.name });
+        }
+    }
+    renderFileQueue();
+    updateUploadBtn();
+}
+
+function renderFileQueue() {
+    const wrap = document.getElementById('fileQueue');
+    const list = document.getElementById('fileQueueList');
+    if (uploadQueue.length === 0) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    list.innerHTML = '';
+    uploadQueue.forEach((item, idx) => {
+        const ext  = item.file.name.split('.').pop().toLowerCase();
+        const icon = ['doc','docx'].includes(ext) ? '📝' : ['xls','xlsx'].includes(ext) ? '📊' : ['zip','rar'].includes(ext) ? '🗜️' : ['ai','psd'].includes(ext) ? '🎨' : '📄';
+        const row  = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:8px 12px; background:rgba(255,255,255,0.6); border-radius:8px; border:1px solid rgba(209,213,219,0.4);';
+        row.innerHTML = `
+            <span style="font-size:18px;">${icon}</span>
+            <input value="${item.name}" onchange="uploadQueue[${idx}].name=this.value"
+                style="flex:1; border:none; background:transparent; font-size:13px; color:#374151; outline:none;">
+            <span style="font-size:11px; color:#9ca3af;">${(item.file.size/1024/1024).toFixed(1)} MB</span>
+            <button onclick="removeFromQueue(${idx})" style="background:none; border:none; cursor:pointer; color:#9ca3af; font-size:16px; line-height:1; padding:0 2px;">&times;</button>
+        `;
+        list.appendChild(row);
+    });
+}
+
+function removeFromQueue(idx) {
+    uploadQueue.splice(idx, 1);
+    renderFileQueue();
+    updateUploadBtn();
+}
+
+function updateUploadBtn() {
+    const btn = document.getElementById('uploadBtn');
+    const hasFiles    = uploadQueue.length > 0;
+    const hasCommunity= document.getElementById('uploadCommunitySelect').value !== '';
+    const ready = hasFiles && hasCommunity;
+    btn.style.opacity        = ready ? '1'    : '0.5';
+    btn.style.pointerEvents  = ready ? 'auto' : 'none';
+}
+
+async function startUpload() {
+    const select = document.getElementById('uploadCommunitySelect');
+    if (!select.value) { alert('Please select a community'); return; }
+    if (uploadQueue.length === 0) { alert('Please add at least one file'); return; }
+
+    const [stateName, communityId] = select.value.split('|');
+    const community = communitiesData[stateName].find(c => c.id === parseInt(communityId));
+    const communityFolder = community.name.replace(/[^a-zA-Z0-9]/g, '_');
+
+    const progressWrap = document.getElementById('uploadProgressWrap');
+    const progressBar  = document.getElementById('uploadProgressBar');
+    const progressPct  = document.getElementById('uploadProgressPct');
+    const statusText   = document.getElementById('uploadStatusText');
+    const uploadBtn    = document.getElementById('uploadBtn');
+
+    progressWrap.style.display = 'block';
+    uploadBtn.style.pointerEvents = 'none';
+    uploadBtn.style.opacity = '0.5';
+
+    let nextId = 1000;
+    Object.values(communitiesData).forEach(sc => {
+        sc.forEach(com => { com.files.forEach(f => { if (f.id >= nextId) nextId = f.id + 1; }); });
+    });
+
+    const total = uploadQueue.length;
+    let done = 0;
+    const uploaded = [];
+
+    const errors = [];
+
+    for (const item of uploadQueue) {
+        statusText.textContent = `Uploading ${item.name}…`;
+        try {
+            // 1. Get presigned URL from Lambda
+            const res = await fetch(LAMBDA_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileName:  item.file.name,
+                    fileType:  item.file.type || 'application/octet-stream',
+                    community: communityFolder
+                })
+            });
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Lambda error ${res.status}: ${errText}`);
+            }
+            const lambdaData = await res.json();
+            const { url, key } = lambdaData;
+            if (!url || !key) throw new Error('Lambda did not return url/key: ' + JSON.stringify(lambdaData));
+
+            // 2. Upload directly to S3
+            const s3res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': item.file.type || 'application/octet-stream' },
+                body: item.file
+            });
+            if (!s3res.ok) {
+                const s3Err = await s3res.text();
+                throw new Error(`S3 error ${s3res.status}: ${s3Err}`);
+            }
+
+            const ext = item.file.name.split('.').pop().toLowerCase();
+            let fileType = 'pdf';
+            if (['doc','docx'].includes(ext))         fileType = 'word';
+            if (['xls','xlsx'].includes(ext))         fileType = 'excel';
+            if (['ai','psd','sketch'].includes(ext))  fileType = 'design';
+            if (['zip','rar','7z'].includes(ext))     fileType = 'archive';
+
+            const fileUrl = `https://atlasprint.s3.us-east-1.amazonaws.com/${key}`;
+            uploaded.push({
+                id:   nextId++,
+                name: item.name,
+                type: fileType,
+                size: (item.file.size / 1024 / 1024).toFixed(1) + ' MB',
+                date: new Date().toISOString().split('T')[0],
+                url:  fileUrl
+            });
+
+        } catch (e) {
+            console.error('Upload failed for', item.name, e);
+            errors.push(`${item.name}: ${e.message}`);
+        }
+        done++;
+        const pct = Math.round((done / total) * 100);
+        progressBar.style.width = pct + '%';
+        progressPct.textContent = pct + '%';
+    }
+
+    // Only save to Firestore if at least one file uploaded successfully
+    if (uploaded.length > 0) {
+        uploaded.forEach(f => community.files.push(f));
+        await saveToStorage();
+        renderCommunities();
+    }
+
+    if (errors.length > 0) {
+        progressBar.style.background = 'linear-gradient(90deg,#dc2626,#ef4444)';
+        statusText.textContent = `❌ ${errors.length} file(s) failed — check console for details`;
+        console.error('Upload errors:', errors);
+        alert('Some files failed to upload:\n\n' + errors.join('\n'));
+    } else {
+        progressBar.style.background = 'linear-gradient(90deg,#16a34a,#22c55e)';
+        statusText.textContent = `✅ ${uploaded.length} file(s) uploaded to ${community.name}`;
+    }
+
+    uploadQueue = [];
+    renderFileQueue();
+
+    setTimeout(() => {
+        progressWrap.style.display = 'none';
+        progressBar.style.width = '0%';
+        progressBar.style.background = 'linear-gradient(90deg,#225e64,#2a7580)';
+        progressPct.textContent = '0%';
+        uploadBtn.style.opacity = '0.5';
+        uploadBtn.style.pointerEvents = 'none';
+    }, 3000);
+}
+
+function clearUpload() {
+    uploadQueue = [];
+    renderFileQueue();
+    updateUploadBtn();
+    document.getElementById('fileInput').value = '';
+    document.getElementById('uploadProgressWrap').style.display = 'none';
+}
+
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
 function hideLoadingOverlay() {
     const overlay = document.getElementById('loadingOverlay');
     overlay.classList.add('hidden');
     setTimeout(() => overlay.remove(), 400);
+}
+
+// Runs once on page load — checks all files across all communities against S3
+// Uses a 3s delay so recently-uploaded files are not false-removed
+async function syncAllDeletedFiles() {
+    let anyChanged = false;
+
+    // Decide whether a single file should be kept. Same rules as before:
+    // 200 (or anything else) = keep, 403/404 = removed, network/CORS error = keep.
+    async function shouldKeep(file, communityName) {
+        if (!file.url) return true; // no url to check
+        try {
+            const res = await fetch(file.url, { method: 'HEAD', cache: 'no-store' });
+            // S3 returns 404 when ListBucket is allowed, but 403 (Access Denied)
+            // for missing objects when it isn't — both mean the file is gone.
+            if (res.status === 404 || res.status === 403) {
+                console.log(`Removed (${res.status}): ${file.name} from ${communityName}`);
+                return false;
+            }
+            return true; // 200 or anything else = keep
+        } catch (e) {
+            return true; // network/CORS error = keep (can't be sure)
+        }
+    }
+
+    // Run a list of async tasks with a concurrency cap so we don't fire
+    // hundreds of requests at once on large repos.
+    async function runWithLimit(tasks, limit) {
+        const results = new Array(tasks.length);
+        let next = 0;
+        async function worker() {
+            while (next < tasks.length) {
+                const i = next++;
+                results[i] = await tasks[i]();
+            }
+        }
+        await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+        return results;
+    }
+
+    // Flatten every file into one checklist so all HEAD requests can run
+    // in parallel (each file is independent of the others).
+    const checks = [];
+    for (const communities of Object.values(communitiesData)) {
+        for (const community of communities) {
+            for (const file of community.files) {
+                checks.push({ community, file });
+            }
+        }
+    }
+    if (checks.length === 0) return;
+
+    const keepFlags = await runWithLimit(
+        checks.map(({ community, file }) => () => shouldKeep(file, community.name)),
+        20
+    );
+
+    // Rebuild each community's file list from the results.
+    const keptByCommunity = new Map();
+    checks.forEach(({ community, file }, i) => {
+        if (!keptByCommunity.has(community)) keptByCommunity.set(community, []);
+        if (keepFlags[i]) keptByCommunity.get(community).push(file);
+        else anyChanged = true;
+    });
+    for (const [community, kept] of keptByCommunity) {
+        community.files = kept;
+    }
+
+    if (anyChanged) {
+        await saveToStorage();
+        renderCommunities();
+        console.log('✅ Synced deleted files from S3');
+    }
 }
 
 async function init() {
@@ -410,8 +721,15 @@ async function init() {
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
     populateCommunitySelect();
+    populateUploadCommunitySelect();
     renderCommunities();
     document.getElementById('searchInput').addEventListener('input', searchCommunities);
+
+    // Sync deleted files 3 seconds after load
+    // (delay avoids false-removing recently uploaded files)
+    // Safe now that S3 objects are public: existing files return 200,
+    // deleted files return 403/404 (anonymous GET on a missing key).
+    setTimeout(syncAllDeletedFiles, 3000);
 }
 
 document.addEventListener('DOMContentLoaded', init);
