@@ -9,18 +9,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Environment Configuration -->
+    <script src="env-config.js"></script>
+
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyC5oHKF_FYWPZHGFoNNahmrvgfAhYehnAI",
-            authDomain: "city-paper-repository.firebaseapp.com",
-            projectId: "city-paper-repository",
-            storageBucket: "city-paper-repository.firebasestorage.app",
-            messagingSenderId: "626588890303",
-            appId: "1:626588890303:web:ac48add55435d4c91c020a"
+            apiKey: window.ENV?.FIREBASE_API_KEY || '',
+            authDomain: window.ENV?.FIREBASE_AUTH_DOMAIN || '',
+            projectId: window.ENV?.FIREBASE_PROJECT_ID || '',
+            storageBucket: window.ENV?.FIREBASE_STORAGE_BUCKET || '',
+            messagingSenderId: window.ENV?.FIREBASE_MESSAGING_SENDER_ID || '',
+            appId: window.ENV?.FIREBASE_APP_ID || ''
         };
 
         const app = initializeApp(firebaseConfig);
@@ -153,14 +156,16 @@
             background: rgba(255, 255, 255, 0.5);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.4);
             transition: all 0.3s ease;
         }
 
         .search-box:focus-within {
-            background: rgba(255, 255, 255, 0.7);
-            box-shadow: 0 0 0 3px rgba(34, 94, 100, 0.1);
-            border-color: rgba(34, 94, 100, 0.3);
+            background: white;
+            border: 2px solid #006168;
+            box-shadow: 0 0 0 3px rgba(0, 97, 104, 0.1),
+                        0 0 20px rgba(0, 97, 104, 0.3),
+                        0 0 40px rgba(0, 97, 104, 0.2);
         }
 
         .header-gradient {
@@ -195,7 +200,7 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: none;
             box-shadow: 0 2px 8px rgba(34, 94, 100, 0.2);
-            color: gray!important;;
+            color: gray;
         }
 
         .download-btn:hover {
@@ -364,9 +369,6 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        p.text-sm.text-gray-400.font-light.flex.items-center.gap-1 {
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -383,10 +385,10 @@
             <div class="max-w-7xl mx-auto px-6 py-6">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-4">
-                        <img src="logo-new.png" alt="City Paper Co" class="h-8 w-auto opacity-90">
+                        <img src="logo-new.png" alt="City Paper Co" class="h-8 w-auto opacity-90" loading="lazy">
                     </div>
                     <div class="flex items-center gap-4">
-                        <img src="atlas-logo.png" alt="Atlas Senior Living" class="h-8 w-auto opacity-90">
+                        <img src="atlas-logo.png" alt="Atlas Senior Living" class="h-8 w-auto opacity-90" loading="lazy">
                     </div>
                 </div>
             </div>
@@ -404,6 +406,8 @@
                     <!-- Toggle header -->
                     <button
                         onclick="toggleQuickLinks()"
+                        aria-label="Toggle quick links section"
+                        aria-expanded="false"
                         style="width:100%; display:flex; align-items:center; justify-content:space-between; padding:0px 24px; background:transparent; border:none; cursor:pointer; transition:background 0.2s ease;"
                         onmouseover="this.style.background='rgba(255,255,255,0.3)'"
                         onmouseout="this.style.background='transparent'"
@@ -492,7 +496,7 @@
         </main>
 
         <!-- Modal -->
-        <div id="fileModal" class="modal-overlay">
+        <div id="fileModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
             <div class="modal-content">
                 <div class="modal-header">
                     <div>
@@ -505,7 +509,7 @@
                             <span></span>
                         </p>
                     </div>
-                    <button class="close-btn" onclick="closeModal()">
+                    <button class="close-btn" onclick="closeModal()" aria-label="Close modal">
                         <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -520,7 +524,7 @@
         <!-- Footer -->
         <footer class="mt-16 pt-10 border-t border-white/30 relative z-10">
             <div class="max-w-7xl mx-auto px-6 pb-8 text-center">
-                <p class="text-gray-400 font-light text-sm tracking-wide">&copy; 2024 Senior Living Communities. All rights reserved.</p>
+                <p class="text-gray-400 font-light text-sm tracking-wide">2026 Atlas Senior Living  </p>
             </div>
         </footer>
     </div>

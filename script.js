@@ -234,7 +234,7 @@ function openModal(community) {
                 </div>
                 <button
                     onclick="event.stopPropagation(); downloadFile(${file.id})"
-                    class="download-btn ml-6 text-white font-light py-3 px-6 rounded-xl transition-all whitespace-nowrap text-sm tracking-wide"
+                    class="download-btn ml-6 text-gray font-light py-3 px-6 rounded-xl transition-all whitespace-nowrap text-sm tracking-wide"
                 >
                     Download
                 </button>
