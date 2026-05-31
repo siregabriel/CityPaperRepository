@@ -107,6 +107,30 @@ async function loadFromStorage() {
 
 let searchQuery = '';
 
+// View mode: 'grid' (cards) or 'list' (compact rows). Persisted per browser.
+let currentView = (function () {
+    try { return localStorage.getItem('repoView') || 'grid'; } catch (e) { return 'grid'; }
+})();
+
+function setView(view) {
+    currentView = (view === 'list') ? 'list' : 'grid';
+    try { localStorage.setItem('repoView', currentView); } catch (e) {}
+    updateViewToggle();
+    renderCommunities();
+}
+
+function updateViewToggle() {
+    const gridBtn = document.getElementById('viewGridBtn');
+    const listBtn = document.getElementById('viewListBtn');
+    if (!gridBtn || !listBtn) return;
+    const active   = { background: 'rgba(34,94,100,0.10)', color: '#225e64' };
+    const inactive = { background: 'transparent', color: '#6b7280' };
+    const g = currentView === 'grid' ? active : inactive;
+    const l = currentView === 'list' ? active : inactive;
+    gridBtn.style.background = g.background; gridBtn.style.color = g.color;
+    listBtn.style.background = l.background; listBtn.style.color = l.color;
+}
+
 function getAllFiles() {
     let allFiles = [];
     Object.values(communitiesData).forEach(stateCommunities => {
@@ -155,11 +179,17 @@ function renderCommunities() {
         stateSection.appendChild(stateHeader);
 
         const grid = document.createElement('div');
-        grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12';
-
-        filtered.forEach(community => {
-            grid.appendChild(createFolderCard(community));
-        });
+        if (currentView === 'list') {
+            grid.className = 'flex flex-col gap-2 mb-12';
+            filtered.forEach(community => {
+                grid.appendChild(createFolderRow(community));
+            });
+        } else {
+            grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12';
+            filtered.forEach(community => {
+                grid.appendChild(createFolderCard(community));
+            });
+        }
 
         stateSection.appendChild(grid);
         container.appendChild(stateSection);
@@ -196,6 +226,32 @@ function createFolderCard(community) {
         </div>
     `;
     return card;
+}
+
+function createFolderRow(community) {
+    const row = document.createElement('div');
+    row.className = 'folder-row rounded-xl px-5 py-3 flex items-center gap-4 cursor-pointer';
+    row.onclick = () => openModal(community);
+
+    row.innerHTML = `
+        <svg class="w-6 h-6 opacity-70 flex-shrink-0" style="color: #225e64;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+        <div class="flex-1 min-w-0">
+            <h3 class="text-base font-normal text-gray-700 truncate">${community.name}</h3>
+        </div>
+        <p class="text-sm text-gray-400 font-light flex items-center gap-1 flex-shrink-0">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            ${community.location}
+        </p>
+        <span class="text-xs text-gray-500 font-light flex-shrink-0 w-16 text-right">
+            ${community.files.length} ${community.files.length === 1 ? 'file' : 'files'}
+        </span>
+    `;
+    return row;
 }
 
 // Keep track of which community is open in the modal
@@ -746,6 +802,7 @@ async function init() {
 
     populateCommunitySelect();
     populateUploadCommunitySelect();
+    updateViewToggle();
     renderCommunities();
     document.getElementById('searchInput').addEventListener('input', searchCommunities);
 

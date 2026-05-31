@@ -64,6 +64,8 @@
         .folder-card { background: rgba(255,255,255,0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.4); position: relative; cursor: pointer; transition: all 0.4s cubic-bezier(0.4,0,0.2,1); min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; }
         .folder-card::before { content: ''; position: absolute; top: -8px; left: 20px; width: 80px; height: 8px; background: linear-gradient(135deg, rgba(34,94,100,0.4) 0%, rgba(34,94,100,0.6) 100%); border-radius: 4px 4px 0 0; border: 1px solid rgba(255,255,255,0.3); border-bottom: none; }
         .folder-card:hover { background: rgba(255,255,255,0.7); transform: translateY(-8px); box-shadow: 0 16px 48px 0 rgba(31,38,135,0.12); }
+        .folder-row { background: rgba(255,255,255,0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.4); transition: background 0.2s ease; }
+        .folder-row:hover { background: rgba(255,255,255,0.75); }
         .folder-card:hover::before { background: linear-gradient(135deg, rgba(34,94,100,0.6) 0%, rgba(34,94,100,0.8) 100%); }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 20px; }
         .modal-overlay.active { opacity: 1; pointer-events: all; }
@@ -224,8 +226,8 @@
             </div>
 
             <!-- Search Bar -->
-            <div class="mb-10 animate-fade-in">
-                <div class="search-box px-6 py-4 rounded-2xl focus-within:outline-none transition-all">
+            <div class="mb-10 animate-fade-in" style="display:flex;align-items:center;gap:12px;">
+                <div class="search-box px-6 py-4 rounded-2xl focus-within:outline-none transition-all" style="flex:1;">
                     <div class="flex items-center gap-3">
                         <svg class="w-5 h-5 search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -234,6 +236,17 @@
                             placeholder="Search by community name or document"
                             class="w-full bg-transparent focus:outline-none text-gray-700 placeholder-gray-400 font-light">
                     </div>
+                </div>
+                <!-- View toggle: grid / list -->
+                <div id="viewToggle" style="display:inline-flex;background:rgba(255,255,255,0.6);border:1px solid rgba(209,213,219,0.5);border-radius:12px;padding:4px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);">
+                    <button id="viewGridBtn" onclick="setView('grid')" title="Grid view" aria-label="Grid view"
+                        style="display:flex;align-items:center;justify-content:center;width:40px;height:36px;border:none;background:transparent;border-radius:9px;cursor:pointer;color:#6b7280;transition:all 0.2s ease;">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+                    </button>
+                    <button id="viewListBtn" onclick="setView('list')" title="List view" aria-label="List view"
+                        style="display:flex;align-items:center;justify-content:center;width:40px;height:36px;border:none;background:transparent;border-radius:9px;cursor:pointer;color:#6b7280;transition:all 0.2s ease;">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
                 </div>
             </div>
 
