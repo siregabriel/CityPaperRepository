@@ -295,6 +295,20 @@ function renderModalFiles() {
         if (file.type === 'excel')  typeIcon = '📊';
         if (file.type === 'design') typeIcon = '📄';
 
+        // Files added via Quick Links (a pasted URL) can be removed from the
+        // repository. Uploaded S3 files are not deletable here.
+        const isLink = file.source === 'link' || (!file.source && file.size === '—');
+        const deleteBtn = isLink ? `
+                <button
+                        onclick="event.stopPropagation(); deleteLinkFile(${file.id})"
+                        title="Remove link" aria-label="Remove link"
+                        class="delete-btn ml-3 flex items-center justify-center rounded-xl transition-all"
+                        style="width:44px;height:44px;flex-shrink:0;">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>` : '';
+
         fileRow.innerHTML = `
             <div class="flex-1">
                 <p class="font-normal text-gray-700 flex items-center gap-3">
@@ -303,12 +317,15 @@ function renderModalFiles() {
                 </p>
                 <p class="text-xs text-gray-400 font-light tracking-wide">${file.type.toUpperCase()} • ${file.size} • ${formatDate(file.date)}</p>
             </div>
-            <button
-                    onclick="event.stopPropagation(); downloadFile(${file.id})"
-                    class="download-btn ml-6 text-gray-700 font-light py-3 px-6 rounded-xl transition-all whitespace-nowrap text-sm tracking-wide"
-                >
-                    Download
-                </button>
+            <div class="flex items-center ml-6">
+                <button
+                        onclick="event.stopPropagation(); downloadFile(${file.id})"
+                        class="download-btn text-gray-700 font-light py-3 px-6 rounded-xl transition-all whitespace-nowrap text-sm tracking-wide"
+                    >
+                        Download
+                    </button>
+                ${deleteBtn}
+            </div>
         `;
         modalFilesList.appendChild(fileRow);
     });
@@ -342,6 +359,26 @@ function downloadFile(fileId) {
     } else {
         alert(`Downloading: ${fileName}`);
     }
+}
+
+async function deleteLinkFile(fileId) {
+    if (!requireAdmin()) return;
+
+    let target = null, targetCommunity = null;
+    Object.values(communitiesData).forEach(stateCommunities => {
+        stateCommunities.forEach(community => {
+            const f = community.files.find(f => f.id === fileId);
+            if (f) { target = f; targetCommunity = community; }
+        });
+    });
+    if (!target || !targetCommunity) return;
+
+    if (!confirm(`Remove "${target.name}" from ${targetCommunity.name}?\n\nThis only removes the link from the repository — it does not delete anything in S3.`)) return;
+
+    targetCommunity.files = targetCommunity.files.filter(f => f.id !== fileId);
+    await saveToStorage();
+    renderModalFiles();
+    renderCommunities();
 }
 
 function searchCommunities() {
@@ -402,7 +439,8 @@ async function addQuickLinks() {
                 type: fileType,
                 size: '—',
                 date: new Date().toISOString().split('T')[0],
-                url:  url
+                url:  url,
+                source: 'link'
             });
             addedCount++;
         } catch (e) {
@@ -644,7 +682,8 @@ async function startUpload() {
                 type: fileType,
                 size: (item.file.size / 1024 / 1024).toFixed(1) + ' MB',
                 date: new Date().toISOString().split('T')[0],
-                url:  fileUrl
+                url:  fileUrl,
+                source: 'upload'
             });
 
         } catch (e) {
