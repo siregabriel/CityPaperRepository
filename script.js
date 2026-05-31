@@ -372,7 +372,7 @@ let _adminUnlocked = false;
 
 function requireAdmin() {
     if (_adminUnlocked) return true;
-    const entry = prompt('Enter password to manage files:');
+    const entry = prompt('For Atlas staff only.\nEnter password to manage files:');
     if (entry === null) return false;          // user cancelled
     if (entry === ADMIN_PASSWORD) {
         _adminUnlocked = true;                  // unlocked for this session
