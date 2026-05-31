@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Repository - Senior Living Communities</title>
+    <title>Printing Site Files Repository - Atlas Senior Living</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,6 +56,7 @@
         .download-btn:hover { background: white; box-shadow: 0 4px 16px rgba(34,94,100,0.15); color: #225e64; }
         .download-btn:active { transform: translateY(0); }
         .search-icon { color: #225e64; opacity: 0.6; }
+        p.made { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:rgb(156 163 175 / var(--tw-text-opacity, 1)); font-size: 14px; font-weight: 400; margin-bottom: 15px; }
         .folder-card { background: rgba(255,255,255,0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.4); position: relative; cursor: pointer; transition: all 0.4s cubic-bezier(0.4,0,0.2,1); min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; }
         .folder-card::before { content: ''; position: absolute; top: -8px; left: 20px; width: 80px; height: 8px; background: linear-gradient(135deg, rgba(34,94,100,0.4) 0%, rgba(34,94,100,0.6) 100%); border-radius: 4px 4px 0 0; border: 1px solid rgba(255,255,255,0.3); border-bottom: none; }
         .folder-card:hover { background: rgba(255,255,255,0.7); transform: translateY(-8px); box-shadow: 0 16px 48px 0 rgba(31,38,135,0.12); }
@@ -65,7 +66,7 @@
         p#modalLocation { display: none; }
         .modal-content { background: rgba(255,255,255,0.95); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.5); border-radius: 24px; max-width: 800px; width: 100%; max-height: 85vh; overflow: hidden; box-shadow: 0 24px 64px rgba(31,38,135,0.2); transform: scale(0.9) translateY(20px); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
         .modal-overlay.active .modal-content { transform: scale(1) translateY(0); }
-        .modal-header { background: linear-gradient(135deg, rgba(248,250,252,0.8) 0%, rgba(241,245,249,0.8) 100%); backdrop-filter: blur(10px); padding: 24px 32px; border-bottom: 1px solid rgba(255,255,255,0.3); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header { background: linear-gradient(135deg, rgba(248,250,252,0.8) 0%, rgba(241,245,249,0.8) 100%); backdrop-filter: blur(10px); padding: 10px 32px; border-bottom: 1px solid rgba(255,255,255,0.3); display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 24px 32px; max-height: calc(85vh - 100px); overflow-y: auto; }
         .close-btn { background: rgba(255,255,255,0.6); border: 1px solid rgba(226,232,240,0.4); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; }
         .close-btn:hover { background: rgba(255,255,255,0.9); transform: rotate(90deg); }
@@ -75,6 +76,17 @@
         ::-webkit-scrollbar-thumb:hover { background: rgba(34,94,100,0.5); }
         #loadingOverlay { position: fixed; inset: 0; background: rgba(255,255,255,0.75); backdrop-filter: blur(6px); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; transition: opacity 0.4s ease; }
         #loadingOverlay.hidden { opacity: 0; pointer-events: none; }
+        .footer-logos { display: flex; justify-content: center; align-items: center; gap: 32px; margin-bottom: 16px; flex-wrap: wrap; }
+        .footer-logo { height: 30px; opacity: 0.7; transition: opacity 0.3s ease; }
+        .footer-logo:hover { opacity: 1; }
+        .footer-logo.gray { filter: grayscale(100%); }
+
+        .footer-logos2 { display: flex; justify-content: center; align-items: center; gap: 32px; margin-bottom: 16px; flex-wrap: wrap; }
+        .footer-logo2 { height: 23px; margin-bottom:10px; opacity: 0.7; transition: opacity 0.3s ease; }
+        .footer-logo2:hover2 { opacity: 1; }
+        .footer-logo.gray { filter: grayscale(100%); }
+
+        
         p.text-sm.text-gray-400.font-light.flex.items-center.gap-1 { display: none; }
         .spinner { width: 40px; height: 40px; border: 3px solid rgba(34,94,100,0.15); border-top-color: #225e64; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -92,10 +104,11 @@
             <div class="max-w-7xl mx-auto px-6 py-6">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-4">
-                        <img src="logo-new.png" alt="City Paper Co" class="h-8 w-auto opacity-90" loading="lazy">
+                        <a href="https://city-paper-repository.vercel.app"><img src="the-vault-logo.png" loading="lazy" class="h-20 alt="The Vault"></a>
                     </div>
                     <div class="flex items-center gap-4">
-                        <img src="atlas-logo.png" alt="Atlas Senior Living" class="h-8 w-auto opacity-90" loading="lazy">
+                        <img src="atlas-logo.png" alt="Atlas Senior Living" class="h-7 w-auto opacity-90" loading="lazy">
+                        <img src="logo-new.png" alt="Atlas Senior Living" class="h-3 -mt-2 ml-6 w-auto opacity-90" loading="lazy">
                     </div>
                 </div>
             </div>
@@ -260,7 +273,12 @@
 
         <footer class="mt-16 pt-10 border-t border-white/30 relative z-10">
             <div class="max-w-7xl mx-auto px-6 pb-8 text-center">
-                <p class="text-gray-400 font-light text-sm tracking-wide">2026 Atlas Senior Living | Web Development Management</p>
+                <div><p class="made">Brewed with:</p></div>
+                <div class="footer-logos">
+                    <img src="aws-lambda-logo.png" alt="Firebase" class="footer-logo gray" loading="lazy">
+                    <img src="firebase-logo.png" height="20" alt="AWS Lambda" class="footer-logo2 gray" loading="lazy">
+                </div>
+                <p class="text-gray-400 font-light text-sm tracking-wide">2026 Printing Site Repository | Web Development Management | Atlas Senior Living</p>
             </div>
         </footer>
     </div>

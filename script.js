@@ -245,7 +245,7 @@ function renderModalFiles() {
                     <span class="text-2xl">${typeIcon}</span>
                     <span>${file.name}</span>
                 </p>
-                <p class="text-xs text-gray-400 mt-2 ml-11 font-light tracking-wide">${file.type.toUpperCase()} • ${file.size} • ${formatDate(file.date)}</p>
+                <p class="text-xs text-gray-400 font-light tracking-wide">${file.type.toUpperCase()} • ${file.size} • ${formatDate(file.date)}</p>
             </div>
             <button
                     onclick="event.stopPropagation(); downloadFile(${file.id})"
