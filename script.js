@@ -53,6 +53,9 @@ const communitiesData = {
         { id: 2,  name: "Madison at The Range",          location: "Madison",     files: [] },
         { id: 3,  name: "The Goldton at Athens",         location: "Athens",      files: [] },
         { id: 4,  name: "The Goldton at Jones Farm",     location: "Atlanta",     files: [] }
+    ],
+    Corporate: [
+        { id: 99, name: "Corporate & All Communities", location: "Birmingham", files: [] }
     ]
 };
 
