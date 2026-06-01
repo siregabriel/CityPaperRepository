@@ -405,6 +405,8 @@ function renderModalFiles() {
                         ? `<span id="thumb-${file.id}" class="pdf-thumb">${typeIcon}</span>`
                         : `<span class="text-2xl">${typeIcon}</span>`}
                     <span>${file.name}</span>
+                    ${isS3File(file) ? '<img src="s3.jpeg" class="s3-badge" alt="Hosted on S3" title="Hosted on AWS S3">' : ''}
+                    ${isDropboxFile(file) ? '<img src="dropbox-logo.jpeg" class="s3-badge" alt="Dropbox link" title="Dropbox link">' : ''}
                     ${isNewFile(file) ? '<span class="new-badge">New</span>' : ''}
                 </p>
                 <p class="text-xs text-gray-400 font-light tracking-wide">${typeLabel(file)} • ${file.size} • ${formatDate(file.date)}</p>
@@ -432,6 +434,16 @@ function renderModalFiles() {
 // Thumbnails only work for PDFs served with permissive CORS — i.e. our own S3
 // bucket. External links (Dropbox, etc.) block cross-origin fetch, so we keep
 // the icon for them instead of failing with CORS errors in the console.
+// True when the file lives in our own S3 bucket.
+function isS3File(file) {
+    return !!file.url && /amazonaws\.com/.test(file.url);
+}
+
+// True when the file is a Dropbox link.
+function isDropboxFile(file) {
+    return !!file.url && /dropbox\.com|dropboxusercontent\.com/.test(file.url);
+}
+
 function canThumbnail(file) {
     return effectiveType(file) === 'pdf'
         && !!file.url
