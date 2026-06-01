@@ -2,6 +2,28 @@
 
 A modern web application to manage and organize documents for senior living communities across multiple states.
 
+## 🛠️ Tech Stack
+
+### Frontend
+- **HTML5** - Semantic markup structure
+- **JavaScript (ES6+)** - Client-side logic and interactivity
+- **Tailwind CSS 3** - Utility-first CSS framework for responsive design
+- **Google Fonts (Inter)** - Professional typography
+
+### Backend & Database
+- **Firebase 10.12.0** - Real-time database and backend services
+- **Cloud Firestore** - NoSQL database for storing community and file data
+- **Firebase Authentication** - Secure user management
+
+### Deployment & Infrastructure
+- **Vercel** - Hosting and continuous deployment
+- **AWS S3/Lambda** - Object storage and serverless computing (available)
+- **Dropbox Integration** - File storage option
+
+### Development Tools
+- **Environment Configuration** - Bash scripts for build-time environment setup
+- **Git** - Version control
+
 ## ✨ Features
 
 ✅ **Community Management** - Organized by state with collapsible community cards
@@ -16,17 +38,51 @@ A modern web application to manage and organize documents for senior living comm
 ## 🚀 Quick Start
 
 ### Requirements
-- Modern web browser
-- Internet connection (for Tailwind CSS CDN)
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Internet connection (for Tailwind CSS CDN and Firebase)
+- Firebase credentials (for database operations)
+
+### Dependencies (via CDN)
+- **Tailwind CSS** - Loaded from CDN (no build step needed)
+- **Firebase SDK** - Loaded from CDN
+- **Google Fonts** - Loaded from Google's font service
 
 ### Installation
 
-1. **Option 1: Open in Browser**
+1. **Option 1: Open in Browser** (Quick Demo)
    - Simply open `index.html` in your web browser
+   - Note: Firebase features require valid credentials
 
 2. **Option 2: Use Live Server (VS Code)**
    - Install "Live Server" extension
    - Right-click on `index.html` → "Open with Live Server"
+
+3. **Option 3: Deploy to Vercel** (Production)
+   - Push to GitHub repository
+   - Configure environment variables in Vercel dashboard
+   - Vercel will automatically deploy on push
+
+### Environment Setup
+
+1. **Create `.env` file** from `.env.example`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Configure Firebase credentials** in `env-config.js` or `.env`:
+   ```javascript
+   VITE_FIREBASE_API_KEY=your_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   ```
+
+3. **Generate environment at build time**:
+   ```bash
+   bash generate-env.sh
+   ```
 
 ### Project Structure
 

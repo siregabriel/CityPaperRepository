@@ -530,7 +530,7 @@ function downloadFile(fileId) {
 }
 
 async function renameFile(fileId) {
-    if (!requireAdmin()) return;
+    if (!(await requireAdmin())) return;
 
     let target = null;
     Object.values(communitiesData).forEach(stateCommunities => {
@@ -553,7 +553,7 @@ async function renameFile(fileId) {
 }
 
 async function deleteLinkFile(fileId) {
-    if (!requireAdmin()) return;
+    if (!(await requireAdmin())) return;
 
     let target = null, targetCommunity = null;
     Object.values(communitiesData).forEach(stateCommunities => {
@@ -651,26 +651,63 @@ async function addQuickLinks() {
 const ADMIN_PASSWORD = 'webdept2022';
 let _adminUnlocked = false;
 
+// Promise-based password gate using an in-app modal (matches the app's UI).
+let _pwResolver = null;
+
 function requireAdmin() {
-    if (_adminUnlocked) return true;
-    const entry = prompt('This action is intended only for the Atlas Senior Living team.\n\nEnter password to manage files:');
-    if (entry === null) return false;          // user cancelled
-    if (entry === ADMIN_PASSWORD) {
-        _adminUnlocked = true;                  // unlocked for this session
-        return true;
-    }
-    alert('Incorrect password.');
-    return false;
+    if (_adminUnlocked) return Promise.resolve(true);
+    return new Promise(resolve => {
+        _pwResolver = resolve;
+        const modal = document.getElementById('pwModal');
+        const input = document.getElementById('pwInput');
+        const err   = document.getElementById('pwError');
+        input.value = '';
+        err.style.display = 'none';
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => input.focus(), 60);
+    });
 }
 
-function togglePanel(which) {
+function submitPassword() {
+    const input = document.getElementById('pwInput');
+    const err   = document.getElementById('pwError');
+    if (input.value === ADMIN_PASSWORD) {
+        _adminUnlocked = true;
+        finishPassword(true);
+    } else {
+        err.style.display = 'block';
+        input.select();
+    }
+}
+
+function closePasswordModal() {
+    finishPassword(false);
+}
+
+function finishPassword(result) {
+    const modal = document.getElementById('pwModal');
+    modal.classList.remove('active');
+    const fileModal = document.getElementById('fileModal');
+    document.body.style.overflow = (fileModal && fileModal.classList.contains('active')) ? 'hidden' : 'auto';
+    const resolve = _pwResolver;
+    _pwResolver = null;
+    if (resolve) resolve(result);
+}
+
+function handlePwKey(e) {
+    if (e.key === 'Enter')  { e.preventDefault(); submitPassword(); }
+    if (e.key === 'Escape') { e.preventDefault(); closePasswordModal(); }
+}
+
+async function togglePanel(which) {
     const panels = { quickLinks: 'quickLinksPanel', upload: 'uploadPanel' };
     const btns   = { quickLinks: 'btnQuickLinks',   upload: 'btnUpload'   };
 
     // Gate opening either admin panel behind a password.
     const target  = document.getElementById(panels[which]);
     const isClosing = target && target.style.maxHeight && target.style.maxHeight !== '0px';
-    if (!isClosing && !requireAdmin()) return;
+    if (!isClosing && !(await requireAdmin())) return;
 
     Object.entries(panels).forEach(([key, panelId]) => {
         const panel = document.getElementById(panelId);
