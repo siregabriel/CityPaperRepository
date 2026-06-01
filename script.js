@@ -131,6 +131,50 @@ function updateViewToggle() {
     listBtn.style.background = l.background; listBtn.style.color = l.color;
 }
 
+// Map a filename/extension to a logical file type. Unknown extensions return
+// 'file' (NOT 'pdf') so they aren't mislabeled or treated as PDFs.
+function detectFileType(name) {
+    const ext = String(name || '').split('.').pop().toLowerCase();
+    if (ext === 'pdf')                                       return 'pdf';
+    if (['doc', 'docx'].includes(ext))                      return 'word';
+    if (['xls', 'xlsx', 'csv'].includes(ext))               return 'excel';
+    if (['ai', 'psd', 'sketch', 'indd', 'idml', 'eps'].includes(ext)) return 'design';
+    if (['zip', 'rar', '7z'].includes(ext))                 return 'archive';
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'tif', 'tiff'].includes(ext)) return 'image';
+    return 'file';
+}
+
+// Extract the extension from a filename or URL path.
+function extOf(file) {
+    let m = String(file.name || '').match(/\.([a-z0-9]+)$/i);
+    if (m) return m[1].toLowerCase();
+    if (file.url) {
+        try {
+            const path = decodeURIComponent(new URL(file.url).pathname);
+            m = path.match(/\.([a-z0-9]+)$/i);
+            if (m) return m[1].toLowerCase();
+        } catch (e) {}
+    }
+    return '';
+}
+
+// Re-derive the real type from the name/URL — corrects older entries that were
+// saved as 'pdf' by the previous (buggy) default.
+function effectiveType(file) {
+    const ext = extOf(file);
+    if (ext) {
+        const t = detectFileType('x.' + ext);
+        if (t !== 'file') return t;
+    }
+    return file.type || 'file';
+}
+
+// Uppercase extension for the label (PDF, INDD, AI…), falling back to type.
+function typeLabel(file) {
+    const ext = extOf(file);
+    return ext ? ext.toUpperCase() : (file.type || 'file').toUpperCase();
+}
+
 // A file is "new" for 40 days after the date it was added.
 const NEW_FILE_DAYS = 40;
 
@@ -323,10 +367,12 @@ function renderModalFiles() {
         fileRow.className = 'file-item flex justify-between items-center p-5 rounded-xl';
         fileRow.id = 'file-row-' + file.id;
 
+        const fType = effectiveType(file);
         let typeIcon = '📄';
-        if (file.type === 'word')   typeIcon = '📝';
-        if (file.type === 'excel')  typeIcon = '📊';
-        if (file.type === 'design') typeIcon = '📄';
+        if (fType === 'word')    typeIcon = '📝';
+        if (fType === 'excel')   typeIcon = '📊';
+        if (fType === 'image')   typeIcon = '🖼️';
+        if (fType === 'archive') typeIcon = '🗜️';
 
         // Files added via Quick Links (a pasted URL) can be removed from the
         // repository. Uploaded S3 files are not deletable here.
@@ -361,7 +407,7 @@ function renderModalFiles() {
                     <span>${file.name}</span>
                     ${isNewFile(file) ? '<span class="new-badge">New</span>' : ''}
                 </p>
-                <p class="text-xs text-gray-400 font-light tracking-wide">${file.type.toUpperCase()} • ${file.size} • ${formatDate(file.date)}</p>
+                <p class="text-xs text-gray-400 font-light tracking-wide">${typeLabel(file)} • ${file.size} • ${formatDate(file.date)}</p>
             </div>
             <div class="flex items-center ml-6">
                 <button
@@ -387,7 +433,7 @@ function renderModalFiles() {
 // bucket. External links (Dropbox, etc.) block cross-origin fetch, so we keep
 // the icon for them instead of failing with CORS errors in the console.
 function canThumbnail(file) {
-    return file.type === 'pdf'
+    return effectiveType(file) === 'pdf'
         && !!file.url
         && /amazonaws\.com/.test(file.url);
 }
@@ -560,11 +606,7 @@ async function addQuickLinks() {
             const finalName = customName || fileName;
             const ext       = fileName.split('.').pop().toLowerCase();
 
-            let fileType = 'pdf';
-            if (['doc', 'docx'].includes(ext))          fileType = 'word';
-            if (['xls', 'xlsx'].includes(ext))          fileType = 'excel';
-            if (['ai', 'psd', 'sketch'].includes(ext))  fileType = 'design';
-            if (['zip', 'rar', '7z'].includes(ext))     fileType = 'archive';
+            const fileType = detectFileType(fileName);
 
             community.files.push({
                 id:   nextId++,
@@ -802,11 +844,7 @@ async function startUpload() {
             }
 
             const ext = item.file.name.split('.').pop().toLowerCase();
-            let fileType = 'pdf';
-            if (['doc','docx'].includes(ext))         fileType = 'word';
-            if (['xls','xlsx'].includes(ext))         fileType = 'excel';
-            if (['ai','psd','sketch'].includes(ext))  fileType = 'design';
-            if (['zip','rar','7z'].includes(ext))     fileType = 'archive';
+            const fileType = detectFileType(item.file.name);
 
             const fileUrl = `https://atlasprint.s3.us-east-1.amazonaws.com/${key}`;
             uploaded.push({
