@@ -1,10 +1,6 @@
 // Communities organized by state
 const communitiesData = {
     Georgia: [
-        { id: 1,  name: "Madison Heights Enterprise",    location: "Enterprise",  files: [] },
-        { id: 2,  name: "Madison at The Range",          location: "Madison",     files: [] },
-        { id: 3,  name: "The Goldton at Athens",         location: "Athens",      files: [] },
-        { id: 4,  name: "The Goldton at Jones Farm",     location: "Atlanta",     files: [] },
         { id: 5,  name: "Madison Heights Evans",         location: "Evans",       files: [] },
         { id: 6,  name: "Legacy at Savannah Quarters",  location: "Pooler",      files: [] },
         { id: 7,  name: "Legacy Ridge at Alpharetta",   location: "Alpharetta",  files: [] },
@@ -14,9 +10,6 @@ const communitiesData = {
         { id: 11, name: "The Overlook at Suwanee",      location: "Suwanee",     files: [] }
     ],
     Florida: [
-        { id: 12, name: "Kelley Place",                  location: "Enterprise",    files: [] },
-        { id: 13, name: "Monark Grove Madison",          location: "Madison",       files: [] },
-        { id: 14, name: "Monark Grove Greystone",        location: "Greystone",     files: [] },
         { id: 15, name: "Madison at Clermont",           location: "Clermont",      files: [] },
         { id: 16, name: "Madison at Ocoee",              location: "Ocoee",         files: [] },
         { id: 17, name: "Madison at Oviedo",             location: "Oviedo",        files: [] },
@@ -52,7 +45,14 @@ const communitiesData = {
         { id: 35, name: "Tribute at The Glen",    location: "Glen",    files: [] }
     ],
     Alabama: [
-        { id: 36, name: "Legacy Ridge at Trussville", location: "Trussville", files: [] },
+        { id: 12, name: "Kelley Place",                  location: "Enterprise",    files: [] },
+        { id: 1,  name: "Madison Heights Enterprise",    location: "Enterprise",  files: [] },
+        { id: 13, name: "Monark Grove Madison",          location: "Madison",       files: [] },
+        { id: 14, name: "Monark Grove Greystone",        location: "Greystone",     files: [] },
+        { id: 36, name: "Legacy Ridge at Trussville",    location: "Trussville",  files: [] },
+        { id: 2,  name: "Madison at The Range",          location: "Madison",     files: [] },
+        { id: 3,  name: "The Goldton at Athens",         location: "Athens",      files: [] },
+        { id: 4,  name: "The Goldton at Jones Farm",     location: "Atlanta",     files: [] }
     ]
 };
 
