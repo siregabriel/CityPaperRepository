@@ -971,6 +971,11 @@ async function syncAllDeletedFiles() {
     // 200 (or anything else) = keep, 403/404 = removed, network/CORS error = keep.
     async function shouldKeep(file, communityName) {
         if (!file.url) return true; // no url to check
+
+    // Solo verificar archivos de S3 — Dropbox y otros externos siempre se conservan
+    const isS3 = /amazonaws\.com/.test(file.url);
+    if (!isS3) return true;
+
         try {
             const res = await fetch(file.url, { method: 'HEAD', cache: 'no-store' });
             // S3 returns 404 when ListBucket is allowed, but 403 (Access Denied)
