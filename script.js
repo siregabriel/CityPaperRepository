@@ -1,8 +1,5 @@
 // Communities organized by state
 const communitiesData = {
-      Alabama: [
-        { id: 36, name: "Legacy Ridge at Trussville", location: "Trussville", files: [] },
-    ]
     Georgia: [
         { id: 1,  name: "Madison Heights Enterprise",    location: "Enterprise",  files: [] },
         { id: 2,  name: "Madison at The Range",          location: "Madison",     files: [] },
@@ -54,6 +51,9 @@ const communitiesData = {
         { id: 34, name: "Tribute at One Loudoun", location: "Loudoun", files: [] },
         { id: 35, name: "Tribute at The Glen",    location: "Glen",    files: [] }
     ],
+    Alabama: [
+        { id: 36, name: "Legacy Ridge at Trussville", location: "Trussville", files: [] },
+    ]
 };
 
 // ─── Firestore helpers ────────────────────────────────────────────────────────
