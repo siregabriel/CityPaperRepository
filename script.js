@@ -134,13 +134,24 @@ function updateViewToggle() {
 // A file is "new" for 40 days after the date it was added.
 const NEW_FILE_DAYS = 40;
 
+// Local YYYY-MM-DD (NOT UTC). new Date().toISOString() returns a UTC date,
+// which can be "tomorrow" for timezones behind UTC and breaks the "new" check.
+function localDateStr() {
+    const d = new Date();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
 function isNewFile(file) {
     if (!file || !file.date) return false;
     const [y, m, d] = String(file.date).split('-').map(Number);
     if (!y || !m || !d) return false;
     const added = new Date(y, m - 1, d);
     const diffDays = (Date.now() - added.getTime()) / 86400000;
-    return diffDays >= 0 && diffDays <= NEW_FILE_DAYS;
+    // Allow a small negative window (-2) so timezone offsets in older entries
+    // saved with a UTC date don't get excluded.
+    return diffDays >= -2 && diffDays <= NEW_FILE_DAYS;
 }
 
 function communityHasNew(community) {
@@ -344,7 +355,9 @@ function renderModalFiles() {
         fileRow.innerHTML = `
             <div class="flex-1">
                 <p class="font-normal text-gray-700 flex items-center gap-3">
-                    <span class="text-2xl">${typeIcon}</span>
+                    ${canThumbnail(file)
+                        ? `<span id="thumb-${file.id}" class="pdf-thumb">${typeIcon}</span>`
+                        : `<span class="text-2xl">${typeIcon}</span>`}
                     <span>${file.name}</span>
                     ${isNewFile(file) ? '<span class="new-badge">New</span>' : ''}
                 </p>
@@ -363,6 +376,69 @@ function renderModalFiles() {
         `;
         modalFilesList.appendChild(fileRow);
     });
+
+    // Render small PDF thumbnails (first page) on demand, after the rows exist.
+    community.files.forEach(file => {
+        if (canThumbnail(file)) renderPdfThumb(file);
+    });
+}
+
+// Thumbnails only work for PDFs served with permissive CORS — i.e. our own S3
+// bucket. External links (Dropbox, etc.) block cross-origin fetch, so we keep
+// the icon for them instead of failing with CORS errors in the console.
+function canThumbnail(file) {
+    return file.type === 'pdf'
+        && !!file.url
+        && /amazonaws\.com/.test(file.url);
+}
+
+// Cache rendered thumbnails for the session so reopening a modal is instant.
+const _pdfThumbCache = {};
+
+async function renderPdfThumb(file) {
+    const holder = document.getElementById('thumb-' + file.id);
+    if (!holder) return;
+
+    if (_pdfThumbCache[file.url]) {
+        holder.innerHTML = `<img src="${_pdfThumbCache[file.url]}" alt="">`;
+        return;
+    }
+
+    const lib = window.pdfjsLib;
+    if (!lib) return; // library not loaded — keep the icon
+
+    try {
+        lib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Download the whole file with a plain GET (CORS already allows GET) and
+        // hand the bytes to PDF.js. This avoids range requests, which need extra
+        // CORS headers (Content-Range/Accept-Ranges) that S3 isn't exposing.
+        const resp = await fetch(file.url, { cache: 'force-cache' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.arrayBuffer();
+
+        const pdf  = await lib.getDocument({ data }).promise;
+        const page = await pdf.getPage(1);
+
+        // Render at ~80px wide (crisp at small size), display scaled down by CSS.
+        const base     = page.getViewport({ scale: 1 });
+        const scale    = 80 / base.width;
+        const viewport = page.getViewport({ scale });
+
+        const canvas  = document.createElement('canvas');
+        canvas.width  = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+        const dataUrl = canvas.toDataURL('image/png');
+        _pdfThumbCache[file.url] = dataUrl;
+
+        const current = document.getElementById('thumb-' + file.id);
+        if (current) current.innerHTML = `<img src="${dataUrl}" alt="">`;
+    } catch (e) {
+        console.warn('PDF thumbnail failed for', file.name, e); // keep the icon
+    }
 }
 
 
@@ -495,7 +571,7 @@ async function addQuickLinks() {
                 name: finalName,
                 type: fileType,
                 size: '—',
-                date: new Date().toISOString().split('T')[0],
+                date: localDateStr(),
                 url:  url,
                 source: 'link'
             });
@@ -738,7 +814,7 @@ async function startUpload() {
                 name: item.name,
                 type: fileType,
                 size: (item.file.size / 1024 / 1024).toFixed(1) + ' MB',
-                date: new Date().toISOString().split('T')[0],
+                date: localDateStr(),
                 url:  fileUrl,
                 source: 'upload'
             });
