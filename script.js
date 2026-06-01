@@ -50,6 +50,9 @@ const communitiesData = {
     Virginia: [
         { id: 34, name: "Tribute at One Loudoun", location: "Loudoun", files: [] },
         { id: 35, name: "Tribute at The Glen",    location: "Glen",    files: [] }
+    ],
+    Alabama: [
+        { id: 36, name: "Legacy Ridge at Trussville", location: "Trussville", files: [] },
     ]
 };
 
