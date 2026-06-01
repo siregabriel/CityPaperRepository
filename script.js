@@ -65,7 +65,9 @@ async function saveToStorage() {
     const ref = window._firestoreDoc(db, "repository", "files");
 
     const snapshot = {};
-    Object.entries(communitiesData).forEach(([state, communities]) => {
+    Object.entries(communitiesData)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .forEach(([state, communities]) => {
         snapshot[state] = communities.map(c => ({ id: c.id, files: c.files }));
     });
 
@@ -229,7 +231,9 @@ function renderCommunities() {
     let hasResults  = false;
     const searchLow = searchQuery.toLowerCase();
 
-    Object.entries(communitiesData).forEach(([state, communities]) => {
+    Object.entries(communitiesData)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .forEach(([state, communities]) => {
         const filtered = communities.filter(community => {
             if (searchLow === '') return true;
             const communityMatches =
@@ -747,7 +751,9 @@ function clearLinks() {
 
 function populateCommunitySelect() {
     const select = document.getElementById('communitySelect');
-    Object.entries(communitiesData).forEach(([state, communities]) => {
+    Object.entries(communitiesData)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .forEach(([state, communities]) => {
         communities.forEach(community => {
             const option   = document.createElement('option');
             option.value   = `${state}|${community.id}`;
@@ -759,7 +765,9 @@ function populateCommunitySelect() {
 
 function populateUploadCommunitySelect() {
     const select = document.getElementById('uploadCommunitySelect');
-    Object.entries(communitiesData).forEach(([state, communities]) => {
+    Object.entries(communitiesData)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .forEach(([state, communities]) => {
         communities.forEach(community => {
             const option   = document.createElement('option');
             option.value   = `${state}|${community.id}`;
