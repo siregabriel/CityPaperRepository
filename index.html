@@ -51,6 +51,11 @@
         .glassmorphism { background: rgba(255,255,255,0.45); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 8px 32px 0 rgba(31,38,135,0.04); }
         .file-item { background: rgba(255,255,255,0.3); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.25); transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
         .file-item:hover { background: rgba(255,255,255,0.5); }
+        @media (max-width: 640px) {
+            .file-item { flex-direction: column; align-items: stretch !important; gap: 14px; }
+            .file-item .file-actions { margin-left: 0 !important; justify-content: flex-end; }
+            .file-item .file-actions .download-btn { flex: 1; text-align: center; }
+        }
         .search-box { background: rgba(255,255,255,0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 2px solid rgba(255,255,255,0.4); transition: all 0.3s ease; }
         .search-box:focus-within { background: white; border: 2px solid #006168; box-shadow: 0 0 0 3px rgba(0,97,104,0.1), 0 0 20px rgba(0,97,104,0.3), 0 0 40px rgba(0,97,104,0.2); }
         .header-gradient { background: rgba(255,255,255,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.3); position: relative; z-index: 10; }

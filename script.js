@@ -411,7 +411,7 @@ function renderModalFiles() {
                 </p>
                 <p class="text-xs text-gray-400 font-light tracking-wide">${typeLabel(file)} • ${file.size} • ${formatDate(file.date)}</p>
             </div>
-            <div class="flex items-center ml-6">
+            <div class="file-actions flex items-center ml-6">
                 <button
                         onclick="event.stopPropagation(); downloadFile(${file.id})"
                         class="download-btn text-gray-700 font-light py-3 px-6 rounded-xl transition-all whitespace-nowrap text-sm tracking-wide"
