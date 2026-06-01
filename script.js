@@ -131,6 +131,22 @@ function updateViewToggle() {
     listBtn.style.background = l.background; listBtn.style.color = l.color;
 }
 
+// A file is "new" for 40 days after the date it was added.
+const NEW_FILE_DAYS = 40;
+
+function isNewFile(file) {
+    if (!file || !file.date) return false;
+    const [y, m, d] = String(file.date).split('-').map(Number);
+    if (!y || !m || !d) return false;
+    const added = new Date(y, m - 1, d);
+    const diffDays = (Date.now() - added.getTime()) / 86400000;
+    return diffDays >= 0 && diffDays <= NEW_FILE_DAYS;
+}
+
+function communityHasNew(community) {
+    return community.files.some(isNewFile);
+}
+
 function getAllFiles() {
     let allFiles = [];
     Object.values(communitiesData).forEach(stateCommunities => {
@@ -203,7 +219,12 @@ function createFolderCard(community) {
     card.className = 'folder-card rounded-2xl p-6';
     card.onclick = () => openModal(community);
 
+    const newBadge = communityHasNew(community)
+        ? `<span class="new-badge" style="position:absolute;top:14px;right:14px;">Recently added</span>`
+        : '';
+
     card.innerHTML = `
+        ${newBadge}
         <div class="flex flex-col h-full">
             <div class="flex-1">
                 <svg class="w-12 h-12 mb-4 opacity-70" style="color: #225e64;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -237,8 +258,9 @@ function createFolderRow(community) {
         <svg class="w-6 h-6 opacity-70 flex-shrink-0" style="color: #225e64;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
         </svg>
-        <div class="flex-1 min-w-0">
+        <div class="flex-1 min-w-0 flex items-center gap-2">
             <h3 class="text-base font-normal text-gray-700 truncate">${community.name}</h3>
+            ${communityHasNew(community) ? '<span class="new-badge flex-shrink-0">New</span>' : ''}
         </div>
         <p class="text-sm text-gray-400 font-light flex items-center gap-1 flex-shrink-0">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,6 +320,16 @@ function renderModalFiles() {
         // Files added via Quick Links (a pasted URL) can be removed from the
         // repository. Uploaded S3 files are not deletable here.
         const isLink = file.source === 'link' || (!file.source && file.size === '—');
+        const renameBtn = `
+                <button
+                        onclick="event.stopPropagation(); renameFile(${file.id})"
+                        title="Rename" aria-label="Rename"
+                        class="rename-btn ml-3 flex items-center justify-center rounded-xl transition-all"
+                        style="width:44px;height:44px;flex-shrink:0;">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                </button>`;
         const deleteBtn = isLink ? `
                 <button
                         onclick="event.stopPropagation(); deleteLinkFile(${file.id})"
@@ -314,6 +346,7 @@ function renderModalFiles() {
                 <p class="font-normal text-gray-700 flex items-center gap-3">
                     <span class="text-2xl">${typeIcon}</span>
                     <span>${file.name}</span>
+                    ${isNewFile(file) ? '<span class="new-badge">New</span>' : ''}
                 </p>
                 <p class="text-xs text-gray-400 font-light tracking-wide">${file.type.toUpperCase()} • ${file.size} • ${formatDate(file.date)}</p>
             </div>
@@ -324,6 +357,7 @@ function renderModalFiles() {
                     >
                         Download
                     </button>
+                ${renameBtn}
                 ${deleteBtn}
             </div>
         `;
@@ -359,6 +393,29 @@ function downloadFile(fileId) {
     } else {
         alert(`Downloading: ${fileName}`);
     }
+}
+
+async function renameFile(fileId) {
+    if (!requireAdmin()) return;
+
+    let target = null;
+    Object.values(communitiesData).forEach(stateCommunities => {
+        stateCommunities.forEach(community => {
+            const f = community.files.find(f => f.id === fileId);
+            if (f) target = f;
+        });
+    });
+    if (!target) return;
+
+    const newName = prompt('Rename file:', target.name);
+    if (newName === null) return;                 // cancelled
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === target.name) return;
+
+    target.name = trimmed;                          // UI/display name only
+    await saveToStorage();
+    renderModalFiles();
+    renderCommunities();
 }
 
 async function deleteLinkFile(fileId) {
@@ -466,7 +523,7 @@ let _adminUnlocked = false;
 
 function requireAdmin() {
     if (_adminUnlocked) return true;
-    const entry = prompt('For Atlas staff only.\nEnter password to manage files:');
+    const entry = prompt('This action is intended only for the Atlas Senior Living team.\n\nEnter password to manage files:');
     if (entry === null) return false;          // user cancelled
     if (entry === ADMIN_PASSWORD) {
         _adminUnlocked = true;                  // unlocked for this session
