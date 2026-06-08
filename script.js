@@ -346,6 +346,7 @@ let _modalCommunity = null;
 
 function openModal(community) {
     _modalCommunity = community;
+    _modalPath = '';
     const modal         = document.getElementById('fileModal');
     const modalTitle    = document.getElementById('modalTitle');
     const modalLocation = document.getElementById('modalLocation');
@@ -359,12 +360,22 @@ function openModal(community) {
     renderModalFiles();
 }
 
+// Current folder path inside the open community modal ('' = root).
+let _modalPath = '';
+
+function navigateModal(path) {
+    _modalPath = path || '';
+    renderModalFiles();
+}
+
 function renderModalFiles() {
     const community      = _modalCommunity;
     const modalFilesList = document.getElementById('modalFilesList');
     modalFilesList.innerHTML = '';
 
-    if (community.files.length === 0) {
+    const files = community.files || [];
+
+    if (files.length === 0) {
         modalFilesList.innerHTML = `
             <div class="text-center py-12">
                 <p class="text-gray-400 font-light">No files added yet for this community.</p>
@@ -372,22 +383,90 @@ function renderModalFiles() {
         return;
     }
 
-    community.files.forEach(file => {
-        const fileRow = document.createElement('div');
-        fileRow.className = 'file-item flex justify-between items-center p-5 rounded-xl';
-        fileRow.id = 'file-row-' + file.id;
+    const cur = _modalPath || '';
 
-        const fType = effectiveType(file);
-        let typeIcon = '📄';
-        if (fType === 'word')    typeIcon = '📝';
-        if (fType === 'excel')   typeIcon = '📊';
-        if (fType === 'image')   typeIcon = '🖼️';
-        if (fType === 'archive') typeIcon = '🗜️';
+    // Separate immediate subfolders from files that live at the current path.
+    const folders   = {};   // folder name -> item count
+    const filesHere = [];
+    files.forEach(f => {
+        const p = f.path || '';
+        if (p === cur) { filesHere.push(f); return; }
+        const prefix = cur ? cur + '/' : '';
+        if ((p + '/').startsWith(prefix)) {
+            const rem = cur ? p.slice(prefix.length) : p;
+            const seg = rem.split('/')[0];
+            if (seg) folders[seg] = (folders[seg] || 0) + 1;
+        }
+    });
 
-        // Files added via Quick Links (a pasted URL) can be removed from the
-        // repository. Uploaded S3 files are not deletable here.
-        const isLink = file.source === 'link' || (!file.source && file.size === '—');
-        const renameBtn = `
+    // Breadcrumb when inside a folder.
+    if (cur) {
+        const crumb = document.createElement('div');
+        crumb.className = 'modal-breadcrumb';
+        const parts = cur.split('/');
+        let acc = '';
+        let html = `<button onclick="navigateModal('')">Root</button>`;
+        parts.forEach((seg, i) => {
+            acc = acc ? acc + '/' + seg : seg;
+            html += `<span class="sep">/</span>`;
+            html += (i === parts.length - 1)
+                ? `<span class="cur">${seg}</span>`
+                : `<button onclick="navigateModal('${acc.replace(/'/g, "\\'")}')">${seg}</button>`;
+        });
+        crumb.innerHTML = html;
+        modalFilesList.appendChild(crumb);
+    }
+
+    // Folder rows (navigable).
+    Object.keys(folders).sort((a, b) => a.localeCompare(b)).forEach(name => {
+        const target = cur ? cur + '/' + name : name;
+        const row = document.createElement('div');
+        row.className = 'file-item flex justify-between items-center p-5 rounded-xl';
+        row.style.cursor = 'pointer';
+        row.onclick = () => navigateModal(target);
+        row.innerHTML = `
+            <div class="flex-1">
+                <p class="font-normal text-gray-700 flex items-center gap-3">
+                    <span class="text-2xl">📁</span>
+                    <span>${name}</span>
+                </p>
+                <p class="text-xs text-gray-400 font-light tracking-wide">${folders[name]} ${folders[name] === 1 ? 'item' : 'items'}</p>
+            </div>
+            <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        `;
+        modalFilesList.appendChild(row);
+    });
+
+    // File rows at this level.
+    filesHere.forEach(file => modalFilesList.appendChild(buildFileRow(file)));
+
+    if (Object.keys(folders).length === 0 && filesHere.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'text-center py-12';
+        empty.innerHTML = `<p class="text-gray-400 font-light">This folder is empty.</p>`;
+        modalFilesList.appendChild(empty);
+    }
+
+    // Render PDF thumbnails for the files currently shown.
+    filesHere.forEach(file => { if (canThumbnail(file)) renderPdfThumb(file); });
+}
+
+function buildFileRow(file) {
+    const fileRow = document.createElement('div');
+    fileRow.className = 'file-item flex justify-between items-center p-5 rounded-xl';
+    fileRow.id = 'file-row-' + file.id;
+
+    const fType = effectiveType(file);
+    let typeIcon = '📄';
+    if (fType === 'word')    typeIcon = '📝';
+    if (fType === 'excel')   typeIcon = '📊';
+    if (fType === 'image')   typeIcon = '🖼️';
+    if (fType === 'archive') typeIcon = '🗜️';
+
+    // Files added via Quick Links (a pasted URL) can be removed from the
+    // repository. Uploaded S3 files are not deletable here.
+    const isLink = file.source === 'link' || (!file.source && file.size === '—');
+    const renameBtn = `
                 <button
                         onclick="event.stopPropagation(); renameFile(${file.id})"
                         title="Rename" aria-label="Rename"
@@ -397,7 +476,7 @@ function renderModalFiles() {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                 </button>`;
-        const deleteBtn = isLink ? `
+    const deleteBtn = isLink ? `
                 <button
                         onclick="event.stopPropagation(); deleteLinkFile(${file.id})"
                         title="Remove link" aria-label="Remove link"
@@ -408,7 +487,7 @@ function renderModalFiles() {
                     </svg>
                 </button>` : '';
 
-        fileRow.innerHTML = `
+    fileRow.innerHTML = `
             <div class="flex-1">
                 <p class="font-normal text-gray-700 flex items-center gap-3">
                     ${canThumbnail(file)
@@ -432,13 +511,7 @@ function renderModalFiles() {
                 ${deleteBtn}
             </div>
         `;
-        modalFilesList.appendChild(fileRow);
-    });
-
-    // Render small PDF thumbnails (first page) on demand, after the rows exist.
-    community.files.forEach(file => {
-        if (canThumbnail(file)) renderPdfThumb(file);
-    });
+    return fileRow;
 }
 
 // Thumbnails only work for PDFs served with permissive CORS — i.e. our own S3
@@ -799,8 +872,11 @@ function handleDrop(event) {
 
 function handleFileSelect(files) {
     for (const file of files) {
-        if (!uploadQueue.find(f => f.file.name === file.name)) {
-            uploadQueue.push({ file, name: file.name });
+        // webkitRelativePath is set when a folder is selected — it carries the
+        // file's path inside the chosen folder (e.g. "Folder/Sub/file.pdf").
+        const relPath = file.webkitRelativePath || file.name;
+        if (!uploadQueue.find(f => f.relPath === relPath)) {
+            uploadQueue.push({ file, name: file.name, relPath });
         }
     }
     renderFileQueue();
@@ -815,13 +891,17 @@ function renderFileQueue() {
     list.innerHTML = '';
     uploadQueue.forEach((item, idx) => {
         const ext  = item.file.name.split('.').pop().toLowerCase();
-        const icon = ['doc','docx'].includes(ext) ? '📝' : ['xls','xlsx'].includes(ext) ? '📊' : ['zip','rar'].includes(ext) ? '🗜️' : ['ai','psd'].includes(ext) ? '🎨' : '📄';
+        const icon = ['doc','docx'].includes(ext) ? '📝' : ['xls','xlsx'].includes(ext) ? '📊' : ['zip','rar'].includes(ext) ? '🗜️' : ['ai','psd','indd','idml','eps'].includes(ext) ? '🎨' : '📄';
+        const isFolderItem = item.relPath.includes('/');
         const row  = document.createElement('div');
         row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:8px 12px; background:rgba(255,255,255,0.6); border-radius:8px; border:1px solid rgba(209,213,219,0.4);';
+        // Folder items show their relative path (read-only); loose files stay editable.
+        const nameField = isFolderItem
+            ? `<span style="flex:1; font-size:13px; color:#374151; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.relPath}">${item.relPath}</span>`
+            : `<input value="${item.name}" onchange="uploadQueue[${idx}].name=this.value" style="flex:1; border:none; background:transparent; font-size:13px; color:#374151; outline:none;">`;
         row.innerHTML = `
             <span style="font-size:18px;">${icon}</span>
-            <input value="${item.name}" onchange="uploadQueue[${idx}].name=this.value"
-                style="flex:1; border:none; background:transparent; font-size:13px; color:#374151; outline:none;">
+            ${nameField}
             <span style="font-size:11px; color:#9ca3af;">${(item.file.size/1024/1024).toFixed(1)} MB</span>
             <button onclick="removeFromQueue(${idx})" style="background:none; border:none; cursor:pointer; color:#9ca3af; font-size:16px; line-height:1; padding:0 2px;">&times;</button>
         `;
@@ -882,7 +962,9 @@ async function startUpload() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    fileName:  item.file.name,
+                    // Send the relative path so the folder structure is recreated
+                    // as key prefixes in S3 (e.g. "Folder/Sub/file.pdf").
+                    fileName:  item.relPath,
                     fileType:  item.file.type || 'application/octet-stream',
                     community: communityFolder
                 })
@@ -906,8 +988,12 @@ async function startUpload() {
                 throw new Error(`S3 error ${s3res.status}: ${s3Err}`);
             }
 
-            const ext = item.file.name.split('.').pop().toLowerCase();
             const fileType = detectFileType(item.file.name);
+            // Folder path for the in-app tree = the relative path minus the
+            // filename (e.g. "Folder/Sub"). Loose files have no path (root).
+            const dirPath = item.relPath.includes('/')
+                ? item.relPath.slice(0, item.relPath.lastIndexOf('/'))
+                : '';
 
             const fileUrl = `https://atlasprint.s3.us-east-1.amazonaws.com/${key}`;
             uploaded.push({
@@ -917,7 +1003,8 @@ async function startUpload() {
                 size: (item.file.size / 1024 / 1024).toFixed(1) + ' MB',
                 date: localDateStr(),
                 url:  fileUrl,
-                source: 'upload'
+                source: 'upload',
+                path: dirPath
             });
 
         } catch (e) {
@@ -965,6 +1052,7 @@ function clearUpload() {
     renderFileQueue();
     updateUploadBtn();
     document.getElementById('fileInput').value = '';
+    document.getElementById('folderInput').value = '';
     document.getElementById('uploadProgressWrap').style.display = 'none';
 }
 
