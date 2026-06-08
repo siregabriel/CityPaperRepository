@@ -362,8 +362,12 @@ function openModal(community) {
 
 // Current folder path inside the open community modal ('' = root).
 let _modalPath = '';
+let _modalNavDir = 'in'; // 'in' = going deeper, 'out' = going up
 
 function navigateModal(path) {
+    const oldDepth = _modalPath ? _modalPath.split('/').length : 0;
+    const newDepth = path ? path.split('/').length : 0;
+    _modalNavDir = newDepth >= oldDepth ? 'in' : 'out';
     _modalPath = path || '';
     renderModalFiles();
 }
@@ -446,6 +450,16 @@ function renderModalFiles() {
         empty.innerHTML = `<p class="text-gray-400 font-light">This folder is empty.</p>`;
         modalFilesList.appendChild(empty);
     }
+
+    // Smooth directional transition between folder levels, with a gentle
+    // staggered cascade on the rows so each level feels satisfying to enter.
+    modalFilesList.classList.remove('slide-in', 'slide-out');
+    Array.from(modalFilesList.querySelectorAll('.file-item')).forEach((el, i) => {
+        el.style.animationDelay = (i * 0.09) + 's';
+        el.classList.add('row-enter');
+    });
+    void modalFilesList.offsetWidth; // restart the animation
+    modalFilesList.classList.add(_modalNavDir === 'out' ? 'slide-out' : 'slide-in');
 
     // Render PDF thumbnails for the files currently shown.
     filesHere.forEach(file => { if (canThumbnail(file)) renderPdfThumb(file); });
