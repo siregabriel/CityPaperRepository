@@ -85,6 +85,20 @@
         #modalFilesList.slide-out { animation: slideInLeft 0.75s cubic-bezier(0.22,1,0.36,1); }
         @keyframes rowEnter { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
         .file-item.row-enter { animation: rowEnter 0.7s cubic-bezier(0.22,1,0.36,1) both; }
+        .recent-section { margin-bottom: 44px; }
+        .recent-header { font-size:14px; font-weight:500; color:#225e64; letter-spacing:0.02em; margin-bottom:14px; display:flex; align-items:center; gap:7px; }
+        .recent-row { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; padding:4px 2px 6px; }
+        .recent-card { background:rgba(255,255,255,0.6); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.5); border-radius:16px; padding:16px; cursor:pointer; transition:all 0.25s cubic-bezier(0.4,0,0.2,1); display:flex; flex-direction:column; }
+        .recent-card:hover { background:rgba(255,255,255,0.88); transform:translateY(-4px); box-shadow:0 12px 32px rgba(31,38,135,0.10); }
+        .recent-card-top { display:flex; align-items:center; gap:8px; margin-bottom:8px; min-height:24px; }
+        .recent-name { font-size:14px; color:#374151; font-weight:500; line-height:1.3; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; min-height:36px; }
+        .recent-meta { font-size:11px; color:#9ca3af; font-weight:300; margin-top:3px; }
+        .recent-card .download-btn { margin-top:12px; text-align:center; padding:8px; border-radius:10px; font-size:12px; }
+        .recent-more { align-items:center; justify-content:center; text-align:center; border-style:dashed; border-color:rgba(34,94,100,0.3); background:rgba(34,94,100,0.04); min-height:160px; }
+        .recent-more:hover { background:rgba(34,94,100,0.08); }
+        .recent-more-num { font-size:26px; font-weight:500; color:#225e64; line-height:1; }
+        .recent-more-label { font-size:12px; color:#6b7280; margin-top:4px; }
+        .recent-more-cta { font-size:12px; font-weight:500; color:#225e64; margin-top:10px; }
         .modal-breadcrumb { display:flex; align-items:center; flex-wrap:wrap; gap:4px; font-size:13px; margin-bottom:4px; padding:0 4px; }
         .modal-breadcrumb button { background:none; border:none; cursor:pointer; color:#225e64; font-size:13px; font-weight:500; padding:2px 4px; border-radius:6px; }
         .modal-breadcrumb button:hover { background:rgba(34,94,100,0.08); }
@@ -285,6 +299,8 @@
                     </button>
                 </div>
             </div>
+
+            <div id="recentSection" class="recent-section" style="display:none;"></div>
 
             <div id="statesContainer" class="space-y-10"></div>
 

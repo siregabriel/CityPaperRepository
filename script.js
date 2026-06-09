@@ -277,6 +277,120 @@ function renderCommunities() {
     });
 
     emptyState.classList.toggle('hidden', hasResults);
+
+    renderRecent();
+}
+
+// ─── Recently uploaded ─────────────────────────────────────────────────────────
+
+const RECENT_COLLAPSED = 5;
+let _recentExpanded = false;
+
+function getRecentFiles() {
+    const all = [];
+    Object.values(communitiesData).forEach(communities => {
+        communities.forEach(community => {
+            (community.files || []).forEach(file => {
+                if (!file.url) return; // skip placeholders/sample entries
+                all.push({ file, community });
+            });
+        });
+    });
+    // Most recent first: by date, then by id (ids increase with every add).
+    all.sort((a, b) => {
+        const d = String(b.file.date || '').localeCompare(String(a.file.date || ''));
+        if (d !== 0) return d;
+        return (b.file.id || 0) - (a.file.id || 0);
+    });
+    if (all.length === 0) return [];
+    // Only files uploaded on the most recent day count as "recent".
+    const latestDate = String(all[0].file.date || '');
+    return all.filter(x => String(x.file.date || '') === latestDate);
+}
+
+function toggleRecent(expand) {
+    _recentExpanded = expand;
+    renderRecent();
+}
+
+function renderRecent() {
+    const section = document.getElementById('recentSection');
+    if (!section) return;
+
+    // Hide while searching, so it doesn't compete with results.
+    if (searchQuery && searchQuery.trim() !== '') { section.style.display = 'none'; return; }
+
+    const all = getRecentFiles();
+    if (all.length === 0) { section.style.display = 'none'; return; }
+
+    const recent = _recentExpanded ? all : all.slice(0, RECENT_COLLAPSED);
+    const hiddenCount = all.length - recent.length;
+
+    const cards = recent.map(({ file, community }) => {
+        const fType = effectiveType(file);
+        let icon = '📄';
+        if (fType === 'word')    icon = '📝';
+        if (fType === 'excel')   icon = '📊';
+        if (fType === 'image')   icon = '🖼️';
+        if (fType === 'archive') icon = '🗜️';
+
+        const badge = isS3File(file)
+            ? '<img src="s3.jpeg" class="s3-badge" alt="S3" title="Hosted on AWS S3">'
+            : (isDropboxFile(file) ? '<img src="dropbox-logo.jpeg" class="s3-badge" alt="Dropbox" title="Dropbox link">' : '');
+
+        return `
+            <div class="recent-card" onclick="openFileInModal(${community.id}, ${file.id})"
+                 onmouseenter="showFilePreview(${file.id}, this)" onmouseleave="hideFilePreview()">
+                <div class="recent-card-top">
+                    <span style="font-size:22px;">${icon}</span>
+                    ${badge}
+                    ${isNewFile(file) ? '<span class="new-badge">New</span>' : ''}
+                </div>
+                <div class="recent-name" title="${file.name}">${file.name}</div>
+                <div class="recent-meta">${community.name}</div>
+                <div class="recent-meta">${formatDate(file.date)}</div>
+                <button class="download-btn" onclick="event.stopPropagation(); downloadFile(${file.id})">Download</button>
+            </div>`;
+    }).join('');
+
+    // Trailing card: "+N more" to expand, or "Show less" to collapse.
+    let moreCard = '';
+    if (!_recentExpanded && hiddenCount > 0) {
+        moreCard = `
+            <div class="recent-card recent-more" onclick="toggleRecent(true)">
+                <span class="recent-more-num">+${hiddenCount}</span>
+                <span class="recent-more-label">more file${hiddenCount === 1 ? '' : 's'}</span>
+                <span class="recent-more-cta">Show all</span>
+            </div>`;
+    } else if (_recentExpanded && all.length > RECENT_COLLAPSED) {
+        moreCard = `
+            <div class="recent-card recent-more" onclick="toggleRecent(false)">
+                <svg style="width:22px;height:22px;margin-bottom:4px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                <span class="recent-more-cta">Show less</span>
+            </div>`;
+    }
+
+    section.innerHTML = `
+        <div class="recent-header">
+            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Recently uploaded ${all.length > RECENT_COLLAPSED ? `<span style="color:#9ca3af;font-weight:400;">(${all.length})</span>` : ''}
+        </div>
+        <div class="recent-row">${cards}${moreCard}</div>`;
+    section.style.display = 'block';
+}
+
+function openFileInModal(communityId, fileId) {
+    let target = null;
+    Object.values(communitiesData).forEach(communities => {
+        communities.forEach(c => { if (c.id === communityId) target = c; });
+    });
+    if (!target) return;
+    openModal(target);
+    const file = target.files.find(f => f.id === fileId);
+    if (file && file.path) {
+        _modalPath = file.path;
+        renderModalFiles();
+    }
 }
 
 function createFolderCard(community) {
@@ -594,6 +708,102 @@ async function renderPdfThumb(file) {
     } catch (e) {
         console.warn('PDF thumbnail failed for', file.name, e); // keep the icon
     }
+}
+
+// ─── Hover preview (PDF first page / images) ───────────────────────────────────
+
+let _previewEl = null;
+let _previewToken = null;
+const _previewCache = {};
+
+function findFileById(id) {
+    let found = null;
+    Object.values(communitiesData).forEach(coms =>
+        coms.forEach(c => { const f = (c.files || []).find(f => f.id === id); if (f) found = f; }));
+    return found;
+}
+
+function ensurePreviewEl() {
+    if (_previewEl) return _previewEl;
+    const el = document.createElement('div');
+    el.id = 'hoverPreview';
+    el.style.cssText = 'position:fixed;z-index:3000;pointer-events:none;opacity:0;transition:opacity 0.15s ease;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:12px;box-shadow:0 16px 48px rgba(31,38,135,0.22);padding:8px;';
+    document.body.appendChild(el);
+    _previewEl = el;
+    return el;
+}
+
+function positionPreview(el, anchor) {
+    const r  = anchor.getBoundingClientRect();
+    const pw = el.offsetWidth  || 256;
+    const ph = el.offsetHeight || 256;
+    let top  = r.top - ph - 10;
+    if (top < 10) top = r.bottom + 10;                  // flip below if no room above
+    let left = r.left + r.width / 2 - pw / 2;
+    left = Math.max(10, Math.min(left, window.innerWidth - pw - 10));
+    el.style.top  = top + 'px';
+    el.style.left = left + 'px';
+}
+
+async function showFilePreview(fileId, anchor) {
+    const file = findFileById(fileId);
+    if (!file || !file.url) return;
+
+    const t     = effectiveType(file);
+    const isImg = t === 'image';
+    const isPdf = t === 'pdf' && /amazonaws\.com/.test(file.url);
+    if (!isImg && !isPdf) return; // only images and (S3) PDFs preview
+
+    const el = ensurePreviewEl();
+    _previewToken = fileId;
+    el.innerHTML = '<div style="font-size:12px;color:#9ca3af;padding:24px 28px;text-align:center;">Loading preview…</div>';
+    el.style.opacity = '1';
+    positionPreview(el, anchor);
+
+    if (isImg) {
+        el.innerHTML = `<img src="${file.url}" style="display:block;max-width:240px;max-height:300px;border-radius:6px;"
+            onload="if(window._repositionPreview)_repositionPreview()"
+            onerror="hideFilePreview()">`;
+        window._repositionPreview = () => positionPreview(el, anchor);
+        return;
+    }
+
+    // PDF: render first page (cached).
+    if (_previewCache[file.url]) {
+        if (_previewToken !== fileId) return;
+        el.innerHTML = `<img src="${_previewCache[file.url]}" style="display:block;max-width:240px;border-radius:6px;">`;
+        positionPreview(el, anchor);
+        return;
+    }
+    try {
+        const lib = window.pdfjsLib;
+        if (!lib) return;
+        lib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const resp = await fetch(file.url, { cache: 'force-cache' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.arrayBuffer();
+        const pdf  = await lib.getDocument({ data }).promise;
+        const page = await pdf.getPage(1);
+        const base = page.getViewport({ scale: 1 });
+        const vp   = page.getViewport({ scale: 240 / base.width });
+        const canvas = document.createElement('canvas');
+        canvas.width  = vp.width;
+        canvas.height = vp.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        const dataUrl = canvas.toDataURL('image/png');
+        _previewCache[file.url] = dataUrl;
+        if (_previewToken !== fileId) return;            // pointer moved away
+        el.innerHTML = `<img src="${dataUrl}" style="display:block;max-width:240px;border-radius:6px;">`;
+        positionPreview(el, anchor);
+    } catch (e) {
+        hideFilePreview();
+    }
+}
+
+function hideFilePreview() {
+    _previewToken = null;
+    if (_previewEl) _previewEl.style.opacity = '0';
 }
 
 
