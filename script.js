@@ -436,12 +436,26 @@ function createFolderCard(community) {
     return card;
 }
 
+function lastAddedDate(community) {
+    let latest = '';
+    (community.files || []).forEach(f => {
+        if (f.date && String(f.date) > latest) latest = String(f.date);
+    });
+    return latest || null;
+}
+
 function createFolderRow(community) {
     const row = document.createElement('div');
     row.className = 'folder-row rounded-xl px-5 py-3 flex items-center gap-4 cursor-pointer';
     row.onclick = () => openModal(community);
 
+    const count   = community.files.length;
+    const latest  = lastAddedDate(community);
+
     row.innerHTML = `
+        <span class="text-xs text-gray-500 font-light flex-shrink-0 w-16 text-left">
+            ${count} ${count === 1 ? 'file' : 'files'}
+        </span>
         <svg class="w-6 h-6 opacity-70 flex-shrink-0" style="color: #225e64;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
         </svg>
@@ -456,8 +470,8 @@ function createFolderRow(community) {
             </svg>
             ${community.location}
         </p>
-        <span class="text-xs text-gray-500 font-light flex-shrink-0 w-16 text-right">
-            ${community.files.length} ${community.files.length === 1 ? 'file' : 'files'}
+        <span class="text-xs text-gray-400 font-light flex-shrink-0 text-right" style="min-width:150px;">
+            ${latest ? 'Last added: ' + formatDate(latest) : '—'}
         </span>
     `;
     return row;
