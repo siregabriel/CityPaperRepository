@@ -349,7 +349,12 @@ function renderRecent() {
                 <div class="recent-name" title="${file.name}">${file.name}</div>
                 <div class="recent-meta">${community.name}</div>
                 <div class="recent-meta">${formatDate(file.date)}</div>
-                <button class="download-btn" onclick="event.stopPropagation(); downloadFile(${file.id})">Download</button>
+                <div style="display:flex;gap:8px;margin-top:12px;align-items:stretch;">
+                    <button class="download-btn" style="flex:1;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:12px;" onclick="event.stopPropagation(); downloadFile(${file.id})">Download</button>
+                    <button class="rename-btn" title="Copy link" aria-label="Copy link" style="width:42px;margin-top:12px;height:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:10px;" onclick="event.stopPropagation(); copyFileLink(${file.id})">
+                        <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    </button>
+                </div>
             </div>`;
     }).join('');
 
@@ -594,6 +599,16 @@ function buildFileRow(file) {
     // Files added via Quick Links (a pasted URL) can be removed from the
     // repository. Uploaded S3 files are not deletable here.
     const isLink = file.source === 'link' || (!file.source && file.size === '—');
+    const copyBtn = `
+                <button
+                        onclick="event.stopPropagation(); copyFileLink(${file.id})"
+                        title="Copy link" aria-label="Copy link"
+                        class="rename-btn ml-3 flex items-center justify-center rounded-xl transition-all"
+                        style="width:44px;height:44px;flex-shrink:0;">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                </button>`;
     const renameBtn = `
                 <button
                         onclick="event.stopPropagation(); renameFile(${file.id})"
@@ -635,6 +650,7 @@ function buildFileRow(file) {
                     >
                         Download
                     </button>
+                ${copyBtn}
                 ${renameBtn}
                 ${deleteBtn}
             </div>
@@ -834,6 +850,49 @@ function downloadFile(fileId) {
     } else {
         alert(`Downloading: ${fileName}`);
     }
+}
+
+function copyFileLink(fileId) {
+    const file = findFileById(fileId);
+    if (!file || !file.url) { showToast('No link available'); return; }
+
+    const done = () => showToast('Link copied');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(file.url).then(done).catch(() => fallbackCopy(file.url, done));
+    } else {
+        fallbackCopy(file.url, done);
+    }
+}
+
+function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { showToast('Could not copy'); }
+    document.body.removeChild(ta);
+}
+
+let _toastTimer = null;
+function showToast(message) {
+    let toast = document.getElementById('appToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'appToast';
+        toast.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(12px);z-index:4000;background:#225e64;color:#fff;font-size:13px;font-weight:500;padding:11px 20px;border-radius:12px;box-shadow:0 8px 28px rgba(34,94,100,0.3);opacity:0;transition:opacity 0.2s ease, transform 0.2s ease;pointer-events:none;display:flex;align-items:center;gap:8px;';
+        document.body.appendChild(toast);
+    }
+    toast.innerHTML = `<svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"/></svg>${message}`;
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+    });
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(12px)';
+    }, 1800);
 }
 
 async function renameFile(fileId) {
