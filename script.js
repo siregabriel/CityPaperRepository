@@ -17,7 +17,8 @@ const communitiesData = {
         { id: 19, name: "The Goldton at St. Petersburg", location: "St. Petersburg",files: [] },
         { id: 20, name: "Lake Howard Heights",           location: "Winter Haven",  files: [] },
         { id: 21, name: "The Canopy At Beacon Woods",   location: "Winter Park",   files: []},
-        { id: 22, name: "The Goldton At Lake Nona",     location: "Lake Nona",     files: [] }
+        { id: 22, name: "The Goldton At Lake Nona",     location: "Lake Nona",     files: [] },
+        { id: 100, name: "The Goldton At Stuart", location: "Stuart", files: [] }
     ],
     Mississippi: [
         { id: 23, name: "The Goldton at Southaven", location: "Southaven", files: [] },
