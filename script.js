@@ -302,10 +302,13 @@ function getRecentFiles() {
         if (d !== 0) return d;
         return (b.file.id || 0) - (a.file.id || 0);
     });
-    if (all.length === 0) return [];
-    // Only files uploaded on the most recent day count as "recent".
-    const latestDate = String(all[0].file.date || '');
-    return all.filter(x => String(x.file.date || '') === latestDate);
+    // "Recent" = files uploaded within the last 7 days.
+    return all.filter(x => {
+        const [y, m, d] = String(x.file.date || '').split('-').map(Number);
+        if (!y || !m || !d) return false;
+        const diffDays = (Date.now() - new Date(y, m - 1, d).getTime()) / 86400000;
+        return diffDays >= -2 && diffDays <= 7; // -2 tolerates timezone offsets
+    });
 }
 
 function toggleRecent(expand) {
