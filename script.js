@@ -57,6 +57,9 @@ const communitiesData = {
     ],
     Corporate: [
         { id: 99, name: "Corporate & All Communities", location: "Birmingham", files: [] }
+    ],
+    Kentucky: [
+        { id: 101, name: "Legacy Reserve at Fritz Farm", location: "Kentucky", files: [] }
     ]
 };
 
