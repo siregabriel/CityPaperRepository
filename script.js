@@ -355,7 +355,7 @@ function renderRecent() {
                 </div>
                 <div class="recent-name" title="${file.name}">${file.name}</div>
                 <div class="recent-meta">${community.name}</div>
-                <div class="recent-meta">${formatDate(file.date)}</div>
+                <div class="recent-meta-2">${formatDate(file.date)}</div>
                 <div style="display:flex;gap:8px;margin-top:12px;align-items:stretch;">
                     <button class="download-btn" style="flex:1;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:12px;" onclick="event.stopPropagation(); downloadFile(${file.id})">Download</button>
                     <button class="rename-btn" title="Copy link" aria-label="Copy link" style="width:42px;margin-top:12px;height:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:10px;" onclick="event.stopPropagation(); copyFileLink(${file.id})">
