@@ -116,6 +116,76 @@ async function loadFromStorage() {
     }
 }
 
+// ─── Concurrency-safe writes ───────────────────────────────────────────────────
+// Globally-unique file id (timestamp + counter). Avoids two clients picking the
+// same id when uploading at the same time.
+let _idCounter = 0;
+function genFileId() {
+    return Date.now() * 1000 + (_idCounter++ % 1000);
+}
+
+// Refresh in-memory communitiesData from a Firestore snapshot object.
+function applySnapshotToLocal(snapshot) {
+    Object.entries(snapshot || {}).forEach(([state, savedComs]) => {
+        if (!communitiesData[state]) return;
+        (savedComs || []).forEach(savedCom => {
+            const live = communitiesData[state].find(c => c.id === savedCom.id);
+            if (live) live.files = (savedCom.files || []).filter(f => f.url);
+        });
+    });
+}
+
+// Apply a mutation against the FRESHEST remote document, atomically.
+// `mutate(data)` edits the snapshot object in place (shape: { state: [ {id, files} ] }).
+// Using a transaction means concurrent uploads from two people merge instead of
+// one clobbering the other.
+async function commitChange(mutate) {
+    const db  = window._db;
+    const ref = window._firestoreDoc(db, "repository", "files");
+    try {
+        if (window._runTransaction) {
+            await window._runTransaction(db, async (tx) => {
+                const snap = await tx.get(ref);
+                const data = snap.exists() ? snap.data() : {};
+                mutate(data);
+                tx.set(ref, data);
+                applySnapshotToLocal(data);
+            });
+        } else {
+            // Fallback (non-atomic): read, merge, write.
+            const snap = await window._firestoreGetDoc(ref);
+            const data = snap.exists() ? snap.data() : {};
+            mutate(data);
+            await window._firestoreSetDoc(ref, data);
+            applySnapshotToLocal(data);
+        }
+        console.log("✅ Change committed to Firestore");
+        return true;
+    } catch (e) {
+        console.error("❌ Firestore commit failed:", e);
+        alert("Save failed. Check your internet connection and try again.");
+        return false;
+    }
+}
+
+// Find (or create) a community entry inside a remote snapshot object.
+function remoteCommunityEntry(data, stateName, communityId) {
+    if (!data[stateName]) data[stateName] = [];
+    let entry = data[stateName].find(c => c.id === communityId);
+    if (!entry) { entry = { id: communityId, files: [] }; data[stateName].push(entry); }
+    if (!entry.files) entry.files = [];
+    return entry;
+}
+
+// Locate the state name for a given community id.
+function stateOfCommunity(communityId) {
+    let found = null;
+    Object.entries(communitiesData).forEach(([state, coms]) => {
+        if (coms.some(c => c.id === communityId)) found = state;
+    });
+    return found;
+}
+
 // ─── UI helpers ───────────────────────────────────────────────────────────────
 
 let searchQuery = '';
@@ -934,8 +1004,13 @@ async function renameFile(fileId) {
     const trimmed = newName.trim();
     if (!trimmed || trimmed === target.name) return;
 
-    target.name = trimmed;                          // UI/display name only
-    await saveToStorage();
+    // Rename the file by id in the freshest remote doc (display name only).
+    const ok = await commitChange(data => {
+        Object.values(data).forEach(coms => coms.forEach(c => {
+            (c.files || []).forEach(f => { if (f.id === fileId) f.name = trimmed; });
+        }));
+    });
+    if (!ok) return;
     renderModalFiles();
     renderCommunities();
 }
@@ -954,8 +1029,13 @@ async function deleteLinkFile(fileId) {
 
     if (!confirm(`Remove "${target.name}" from ${targetCommunity.name}?\n\nThis only removes the link from the repository — it does not delete anything in S3.`)) return;
 
-    targetCommunity.files = targetCommunity.files.filter(f => f.id !== fileId);
-    await saveToStorage();
+    // Remove the file by id from the freshest remote doc.
+    const ok = await commitChange(data => {
+        Object.values(data).forEach(coms => coms.forEach(c => {
+            if (c.files) c.files = c.files.filter(f => f.id !== fileId);
+        }));
+    });
+    if (!ok) return;
     renderModalFiles();
     renderCommunities();
 }
@@ -983,19 +1063,12 @@ async function addQuickLinks() {
     if (!communitySelect.value) { alert('Please select a community'); return; }
 
     const [stateName, communityId] = communitySelect.value.split('|');
-    const state     = communitiesData[stateName];
-    const community = state.find(c => c.id === parseInt(communityId));
+    const state       = communitiesData[stateName];
+    const communityIdN = parseInt(communityId);
+    const community   = state.find(c => c.id === communityIdN);
     if (!community) { alert('Error: Community not found'); return; }
 
-    // Next ID
-    let nextId = 1000;
-    Object.values(communitiesData).forEach(sc => {
-        sc.forEach(com => {
-            com.files.forEach(f => { if (f.id >= nextId) nextId = f.id + 1; });
-        });
-    });
-
-    let addedCount = 0;
+    const newFiles = [];
     urls.forEach(url => {
         url = url.trim();
         if (!url) return;
@@ -1004,12 +1077,10 @@ async function addQuickLinks() {
             const pathParts = urlObj.pathname.split('/');
             const fileName  = decodeURIComponent(pathParts[pathParts.length - 1]);
             const finalName = customName || fileName;
-            const ext       = fileName.split('.').pop().toLowerCase();
+            const fileType  = detectFileType(fileName);
 
-            const fileType = detectFileType(fileName);
-
-            community.files.push({
-                id:   nextId++,
+            newFiles.push({
+                id:   genFileId(),
                 name: finalName,
                 type: fileType,
                 size: '—',
@@ -1017,19 +1088,24 @@ async function addQuickLinks() {
                 url:  url,
                 source: 'link'
             });
-            addedCount++;
         } catch (e) {
             console.error('Error processing URL:', url, e);
         }
     });
 
+    if (newFiles.length === 0) { alert('No valid URLs found.'); return; }
+
+    // Merge into the freshest remote doc so concurrent edits aren't lost.
+    const ok = await commitChange(data => {
+        const entry = remoteCommunityEntry(data, stateName, communityIdN);
+        newFiles.forEach(f => { if (!entry.files.some(x => x.id === f.id)) entry.files.push(f); });
+    });
+    if (!ok) return;
+
     textarea.value        = '';
     customNameInput.value = '';
     renderCommunities();
-
-    // Save to Firestore
-    await saveToStorage();
-    alert(`✅ Added ${addedCount} file(s) to ${community.name}`);
+    alert(`✅ Added ${newFiles.length} file(s) to ${community.name}`);
 }
 
 // ─── Admin gate ───────────────────────────────────────────────────────────────
@@ -1235,7 +1311,8 @@ async function startUpload() {
     if (uploadQueue.length === 0) { alert('Please add at least one file'); return; }
 
     const [stateName, communityId] = select.value.split('|');
-    const community = communitiesData[stateName].find(c => c.id === parseInt(communityId));
+    const communityIdN = parseInt(communityId);
+    const community = communitiesData[stateName].find(c => c.id === communityIdN);
     const communityFolder = community.name.replace(/[^a-zA-Z0-9]/g, '_');
 
     const progressWrap = document.getElementById('uploadProgressWrap');
@@ -1247,11 +1324,6 @@ async function startUpload() {
     progressWrap.style.display = 'block';
     uploadBtn.style.pointerEvents = 'none';
     uploadBtn.style.opacity = '0.5';
-
-    let nextId = 1000;
-    Object.values(communitiesData).forEach(sc => {
-        sc.forEach(com => { com.files.forEach(f => { if (f.id >= nextId) nextId = f.id + 1; }); });
-    });
 
     const total = uploadQueue.length;
     let done = 0;
@@ -1302,7 +1374,7 @@ async function startUpload() {
 
             const fileUrl = `https://atlasprint.s3.us-east-1.amazonaws.com/${key}`;
             uploaded.push({
-                id:   nextId++,
+                id:   genFileId(),
                 name: item.name,
                 type: fileType,
                 size: (item.file.size / 1024 / 1024).toFixed(1) + ' MB',
@@ -1322,10 +1394,14 @@ async function startUpload() {
         progressPct.textContent = pct + '%';
     }
 
-    // Only save to Firestore if at least one file uploaded successfully
+    // Only save to Firestore if at least one file uploaded successfully.
+    // Merge into the freshest remote doc so simultaneous uploads from two
+    // people don't overwrite each other.
     if (uploaded.length > 0) {
-        uploaded.forEach(f => community.files.push(f));
-        await saveToStorage();
+        await commitChange(data => {
+            const entry = remoteCommunityEntry(data, stateName, communityIdN);
+            uploaded.forEach(f => { if (!entry.files.some(x => x.id === f.id)) entry.files.push(f); });
+        });
         renderCommunities();
     }
 
@@ -1372,8 +1448,6 @@ function hideLoadingOverlay() {
 // Runs once on page load — checks all files across all communities against S3
 // Uses a 3s delay so recently-uploaded files are not false-removed
 async function syncAllDeletedFiles() {
-    let anyChanged = false;
-
     // Decide whether a single file should be kept. Same rules as before:
     // 200 (or anything else) = keep, 403/404 = removed, network/CORS error = keep.
     async function shouldKeep(file, communityName) {
@@ -1429,19 +1503,19 @@ async function syncAllDeletedFiles() {
         20
     );
 
-    // Rebuild each community's file list from the results.
-    const keptByCommunity = new Map();
-    checks.forEach(({ community, file }, i) => {
-        if (!keptByCommunity.has(community)) keptByCommunity.set(community, []);
-        if (keepFlags[i]) keptByCommunity.get(community).push(file);
-        else anyChanged = true;
-    });
-    for (const [community, kept] of keptByCommunity) {
-        community.files = kept;
-    }
+    // Collect the ids of files confirmed gone from S3.
+    const removedIds = [];
+    checks.forEach(({ file }, i) => { if (!keepFlags[i]) removedIds.push(file.id); });
 
-    if (anyChanged) {
-        await saveToStorage();
+    if (removedIds.length > 0) {
+        // Remove exactly those ids from the freshest remote doc, so we don't
+        // clobber files another user uploaded since this page loaded.
+        const removeSet = new Set(removedIds);
+        await commitChange(data => {
+            Object.values(data).forEach(coms => coms.forEach(c => {
+                if (c.files) c.files = c.files.filter(f => !removeSet.has(f.id));
+            }));
+        });
         renderCommunities();
         console.log('✅ Synced deleted files from S3');
     }
