@@ -257,9 +257,15 @@ function typeLabel(file) {
     const ext = extOf(file);
     if (ext) return ext.toUpperCase();
     // No extension (e.g. a Google Drive / Dropbox folder link): show "LINK".
-    const isLink = file.source === 'link' || (!file.source && file.size === '—');
-    if (isLink) return 'LINK';
+    if (isCollectionLink(file)) return 'LINK';
     return (file.type || 'file').toUpperCase();
+}
+
+// A link with no file extension — typically a folder/collection of files
+// (e.g. a Google Drive or Dropbox folder), not a single document.
+function isCollectionLink(file) {
+    const isLink = file.source === 'link' || (!file.source && file.size === '—');
+    return isLink && !extOf(file);
 }
 
 // A file is "new" for 40 days after the date it was added.
@@ -415,6 +421,7 @@ function renderRecent() {
         if (fType === 'excel')   icon = '📊';
         if (fType === 'image')   icon = '🖼️';
         if (fType === 'archive') icon = '🗜️';
+        if (isCollectionLink(file)) icon = '🗂️';
 
         const badge = sourceBadge(file);
 
@@ -689,6 +696,8 @@ function buildFileRow(file) {
     if (fType === 'excel')   typeIcon = '📊';
     if (fType === 'image')   typeIcon = '🖼️';
     if (fType === 'archive') typeIcon = '🗜️';
+    // A link with no extension is usually a folder/collection of files.
+    if (isCollectionLink(file)) typeIcon = '🗂️';
 
     // Files added via Quick Links (a pasted URL) can be removed from the
     // repository. Uploaded S3 files are not deletable here.
