@@ -412,9 +412,7 @@ function renderRecent() {
         if (fType === 'image')   icon = '🖼️';
         if (fType === 'archive') icon = '🗜️';
 
-        const badge = isS3File(file)
-            ? '<img src="s3.jpeg" class="s3-badge" alt="S3" title="Hosted on AWS S3">'
-            : (isDropboxFile(file) ? '<img src="dropbox-logo.jpeg" class="s3-badge" alt="Dropbox" title="Dropbox link">' : '');
+        const badge = sourceBadge(file);
 
         return `
             <div class="recent-card" onclick="openFileInModal(${community.id}, ${file.id})"
@@ -729,8 +727,7 @@ function buildFileRow(file) {
                         ? `<span id="thumb-${file.id}" class="pdf-thumb">${typeIcon}</span>`
                         : `<span class="text-2xl">${typeIcon}</span>`}
                     <span>${file.name}</span>
-                    ${isS3File(file) ? '<img src="s3.jpeg" class="s3-badge" alt="Hosted on S3" title="Hosted on AWS S3">' : ''}
-                    ${isDropboxFile(file) ? '<img src="dropbox-logo.jpeg" class="s3-badge" alt="Dropbox link" title="Dropbox link">' : ''}
+                    ${sourceBadge(file)}
                     ${isNewFile(file) ? '<span class="new-badge">New</span>' : ''}
                 </p>
                 <p class="text-xs text-gray-400 font-light tracking-wide">${typeLabel(file)} • ${file.size} • ${formatDate(file.date)}</p>
@@ -761,6 +758,22 @@ function isS3File(file) {
 // True when the file is a Dropbox link.
 function isDropboxFile(file) {
     return !!file.url && /dropbox\.com|dropboxusercontent\.com/.test(file.url);
+}
+
+// True when the file is a Google Drive link.
+function isGoogleDriveFile(file) {
+    return !!file.url && /drive\.google\.com|docs\.google\.com/.test(file.url);
+}
+
+// Inline Google Drive logo (no image asset needed).
+const GDRIVE_BADGE = '<svg class="s3-badge" viewBox="0 0 87.3 78" title="Google Drive" aria-label="Google Drive link"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5C.4 49.9 0 51.45 0 53h27.5z" fill="#00ac47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/><path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="M73.4 26.5L60.7 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>';
+
+// The right source badge for a file (S3 / Dropbox / Google Drive / none).
+function sourceBadge(file) {
+    if (isS3File(file))         return '<img src="s3.jpeg" class="s3-badge" alt="S3" title="Hosted on AWS S3">';
+    if (isDropboxFile(file))    return '<img src="dropbox-logo.jpeg" class="s3-badge" alt="Dropbox" title="Dropbox link">';
+    if (isGoogleDriveFile(file)) return GDRIVE_BADGE;
+    return '';
 }
 
 function canThumbnail(file) {
