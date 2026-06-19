@@ -255,7 +255,11 @@ function effectiveType(file) {
 // Uppercase extension for the label (PDF, INDD, AI…), falling back to type.
 function typeLabel(file) {
     const ext = extOf(file);
-    return ext ? ext.toUpperCase() : (file.type || 'file').toUpperCase();
+    if (ext) return ext.toUpperCase();
+    // No extension (e.g. a Google Drive / Dropbox folder link): show "LINK".
+    const isLink = file.source === 'link' || (!file.source && file.size === '—');
+    if (isLink) return 'LINK';
+    return (file.type || 'file').toUpperCase();
 }
 
 // A file is "new" for 40 days after the date it was added.
