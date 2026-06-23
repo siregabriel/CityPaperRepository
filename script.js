@@ -416,12 +416,14 @@ function renderRecent() {
 
     const cards = recent.map(({ file, community }) => {
         const fType = effectiveType(file);
-        let icon = '📄';
-        if (fType === 'word')    icon = '📝';
-        if (fType === 'excel')   icon = '📊';
-        if (fType === 'image')   icon = '🖼️';
-        if (fType === 'archive') icon = '🗜️';
-        if (isCollectionLink(file)) icon = '🗂️';
+        let icon = '<span style="font-size:22px;">📄</span>';
+        if (fType === 'word')    icon = '<span style="font-size:22px;">📝</span>';
+        if (fType === 'excel')   icon = '<span style="font-size:22px;">📊</span>';
+        if (fType === 'image')   icon = '<span style="font-size:22px;">🖼️</span>';
+        if (fType === 'archive') icon = '<span style="font-size:22px;">🗜️</span>';
+        if (fType === 'pdf')     icon = PDF_CHIP;
+        if (extOf(file) === 'ai') icon = AI_CHIP;
+        if (isCollectionLink(file)) icon = '<span style="font-size:22px;">🗂️</span>';
 
         const badge = sourceBadge(file);
 
@@ -429,7 +431,7 @@ function renderRecent() {
             <div class="recent-card" onclick="openFileInModal(${community.id}, ${file.id})"
                  onmouseenter="showFilePreview(${file.id}, this)" onmouseleave="hideFilePreview()">
                 <div class="recent-card-top">
-                    <span style="font-size:22px;">${icon}</span>
+                    ${icon}
                     ${badge}
                     ${isNewFile(file) ? '<span class="new-badge">New</span>' : ''}
                 </div>
@@ -696,6 +698,8 @@ function buildFileRow(file) {
     if (fType === 'excel')   typeIcon = '📊';
     if (fType === 'image')   typeIcon = '🖼️';
     if (fType === 'archive') typeIcon = '🗜️';
+    if (fType === 'pdf')     typeIcon = PDF_CHIP;
+    if (extOf(file) === 'ai') typeIcon = AI_CHIP;
     // A link with no extension is usually a folder/collection of files.
     if (isCollectionLink(file)) typeIcon = '🗂️';
 
@@ -777,6 +781,12 @@ function isDropboxFile(file) {
 function isGoogleDriveFile(file) {
     return !!file.url && /drive\.google\.com|docs\.google\.com/.test(file.url);
 }
+
+// Small red "PDF" chip used as the icon for PDF files.
+const PDF_CHIP = '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#e84d4d;border-radius:5px;color:#fff;font-size:8px;font-weight:700;letter-spacing:0.3px;flex-shrink:0;">PDF</span>';
+
+// Adobe Illustrator "Ai" chip (orange on dark, like the app icon).
+const AI_CHIP = '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:#310402;border-radius:5px;color:#ff9a00;font-size:9px;font-weight:700;letter-spacing:0.2px;flex-shrink:0;">Ai</span>';
 
 // Inline Google Drive logo (no image asset needed).
 const GDRIVE_BADGE = '<svg class="s3-badge" viewBox="0 0 87.3 78" aria-label="Stored in Google Drive"><title>Stored in Google Drive</title><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5C.4 49.9 0 51.45 0 53h27.5z" fill="#00ac47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/><path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="M73.4 26.5L60.7 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>';
