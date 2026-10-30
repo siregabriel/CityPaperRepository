@@ -8,7 +8,8 @@ const communitiesData = {
         { id: 9,  name: "Legacy Ridge at Marietta",     location: "Marietta",    files: [] },
         { id: 10, name: "The Canopy at Westridge",      location: "McDonough",   files: [] },
         { id: 11, name: "The Overlook at Suwanee",      location: "Suwanee",     files: [] },
-        { id: 102, name: "Legacy Reserve at Old Town",  location: "Columbus",     files: [] }
+        { id: 102, name: "Legacy Reserve at Old Town",  location: "Columbus",     files: [] },
+        { id: 103, name: "The Georgian Lakeside",       location: "Roswell",     files: [] }
     ],
     Florida: [
         { id: 15, name: "Madison at Clermont",           location: "Clermont",      files: [] },
