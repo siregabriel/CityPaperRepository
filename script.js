@@ -36,7 +36,7 @@ const communitiesData = {
     ],
     Texas: [
         { id: 30, name: "The Oscar at Georgetown", location: "Georgetown",  files: [] },
-        { id: 31, name: "The Oscar at Veramendi",  location: "San Antonio", files: [] }
+        { id: 31, name: "The Oscar at Veramendi",  location: "New Braunfels", files: [] }
     ],
     Maryland: [
         { id: 32, name: "Tribute at Black Hill", location: "Black Hill", files: [] },
